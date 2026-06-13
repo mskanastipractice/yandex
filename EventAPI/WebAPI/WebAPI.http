@@ -1,0 +1,41 @@
+@WebAPI_HostAddress = http://localhost:5161
+@ContentType = application/json
+
+### 1. Получить все события
+GET {{WebAPI_HostAddress}}/events
+Accept: application/json
+
+### 2. Получить событие по ID (существующее)
+GET {{WebAPI_HostAddress}}/events/1
+Accept: application/json
+
+### 3. Получить событие по ID (несуществующее)
+GET {{WebAPI_HostAddress}}/events/999
+Accept: application/json
+
+### 4. Создать новое событие
+POST {{WebAPI_HostAddress}}/events
+Content-Type: {{ContentType}}
+
+{
+    "id": 1,
+    "title": "Конференция разработчиков",
+    "description": "Ежегодная конференция для .NET разработчиков",
+    "startAt": "2026-06-15T10:00:00Z",
+    "endAt": "2026-06-17T18:00:00Z"
+}
+
+### 5. Обновить событие (PUT)
+PUT {{WebAPI_HostAddress}}/events/4
+Content-Type: {{ContentType}}
+
+{
+    "title": "Обновленная конференция",
+    "description": "Новая конференция",
+    "startAt": "2026-07-10T10:00:00Z",
+    "endAt": "2026-07-12T18:00:00Z"
+}
+
+### 6. Удалить событие
+DELETE {{WebAPI_HostAddress}}/events/1
+Accept: application/json

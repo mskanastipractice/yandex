@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "Domain\Domain.csproj", "{C371249B-F6E2-4F6A-A33C-E3009A019A73}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CC96C66A-E7AD-4EB4-93EB-2C59A573B006}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "Application\Application.csproj", "{FAE74736-6B16-436B-9434-6260426E1882}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebAPI", "WebAPI\WebAPI.csproj", "{027BFA84-DAD4-463F-97FC-03E4D94553B1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C371249B-F6E2-4F6A-A33C-E3009A019A73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C371249B-F6E2-4F6A-A33C-E3009A019A73}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C371249B-F6E2-4F6A-A33C-E3009A019A73}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C371249B-F6E2-4F6A-A33C-E3009A019A73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAE74736-6B16-436B-9434-6260426E1882}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAE74736-6B16-436B-9434-6260426E1882}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAE74736-6B16-436B-9434-6260426E1882}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAE74736-6B16-436B-9434-6260426E1882}.Release|Any CPU.Build.0 = Release|Any CPU
+		{027BFA84-DAD4-463F-97FC-03E4D94553B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{027BFA84-DAD4-463F-97FC-03E4D94553B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{027BFA84-DAD4-463F-97FC-03E4D94553B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{027BFA84-DAD4-463F-97FC-03E4D94553B1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C371249B-F6E2-4F6A-A33C-E3009A019A73} = {CC96C66A-E7AD-4EB4-93EB-2C59A573B006}
+		{FAE74736-6B16-436B-9434-6260426E1882} = {CC96C66A-E7AD-4EB4-93EB-2C59A573B006}
+		{027BFA84-DAD4-463F-97FC-03E4D94553B1} = {CC96C66A-E7AD-4EB4-93EB-2C59A573B006}
+	EndGlobalSection
+EndGlobal

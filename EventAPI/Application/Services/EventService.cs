@@ -1,6 +1,7 @@
 ﻿using Application.Contracts;
 using Application.Contracts.DTOs;
 using Application.Exceptions;
+using Application.Extensions;
 using Domain.Entities;
 using Domain.Entities.ValueObjects;
 
@@ -12,6 +13,19 @@ public class EventService : IEventService
 	
 	public IEnumerable<EventDto> GetAll()
 		=> _events.Select(EventDto.ToDto);
+
+	public PaginatedResultDto<EventDto> GetAll(Filters filters, int page, int pageSize)
+	{
+		IEnumerable<Event> filteredEvents = _events
+			.WhereIf(!string.IsNullOrWhiteSpace(filters.Title), x => x.Title.Contains(filters.Title!, StringComparison.OrdinalIgnoreCase))
+			.WhereIf(filters.From.HasValue, x => x.Period.StartAt >= filters.From)
+			.WhereIf(filters.To.HasValue, x => x.Period.EndAt <= filters.To);
+
+		var totalItems = filteredEvents.Count();
+		var result = filteredEvents.Skip((page - 1) * pageSize).Take(pageSize).Select(EventDto.ToDto).ToArray();
+
+		return new PaginatedResultDto<EventDto>(totalItems, page, result.Length, result);
+	}
 
 	public EventDto GetById(int eventId)
 	{

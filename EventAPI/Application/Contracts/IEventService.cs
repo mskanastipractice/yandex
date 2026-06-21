@@ -12,7 +12,7 @@ public interface IEventService
     /// Возвращает все доступные события.
     /// </summary>
     /// <returns>Коллекция событий.</returns>
-    IEnumerable<EventDto> GetAll();
+    PaginatedResultDto<EventDto> GetAll(Filters filters, int page, int pageSize);
     
     /// <summary>
     /// Возвращает событие по его идентификатору.

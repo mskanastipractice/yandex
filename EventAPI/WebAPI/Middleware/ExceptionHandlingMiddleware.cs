@@ -1,23 +1,13 @@
 ﻿using Application.Exceptions;
+using Microsoft.AspNetCore.Mvc;
 
 namespace WebAPI.Middleware;
 
 /// <summary>
 /// Глобальная обработка исключений для API.
 /// </summary>
-internal class ExceptionHandlingMiddleware
+internal class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
 {
-	private readonly RequestDelegate _next;
-	
-	/// <summary>
-	/// Инициализирует новый экземпляр middleware.
-	/// </summary>
-	/// <param name="next">Следующий делегат в конвейере обработки запросов.</param>
-	public ExceptionHandlingMiddleware(RequestDelegate next)
-	{
-		_next = next;
-	}
-	
 	/// <summary>
 	/// Выполняет обработку HTTP-запроса с перехватом исключений.
 	/// </summary>
@@ -27,7 +17,7 @@ internal class ExceptionHandlingMiddleware
 	{
 		try
 		{
-			await _next(context);
+			await next(context);
 		}
 		catch (Exception ex)
 		{
@@ -35,13 +25,18 @@ internal class ExceptionHandlingMiddleware
 		}
 	}
 
-	private static Task HandleExceptionAsync(HttpContext context, Exception exception)
+	private Task HandleExceptionAsync(HttpContext context, Exception exception)
 	{
 		context.Response.ContentType = "application/json";
 
 		int statusCode;
 		string message;
-
+		
+		logger.LogError(
+			exception, 
+			"Ошибка при обработке запроса {Method} {Path}",
+			context.Request.Method, context.Request.Path);
+		
 		switch (exception)
 		{
 			case EntityNotFoundException:
@@ -61,7 +56,13 @@ internal class ExceptionHandlingMiddleware
 		}
 
 		context.Response.StatusCode = statusCode;
-
-		return context.Response.WriteAsJsonAsync(new CustomHttpResponse(message));
+		var responseMessage = new ProblemDetails
+		{
+			Status = statusCode,
+			Title = message,
+			Detail = message
+		};
+		
+		return context.Response.WriteAsJsonAsync(responseMessage);
 	}
 }

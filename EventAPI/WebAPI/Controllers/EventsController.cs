@@ -1,5 +1,6 @@
 using Application.Contracts;
 using Microsoft.AspNetCore.Mvc;
+using WebAPI.Mappings;
 using WebAPI.Models;
 
 namespace WebAPI.Controllers;
@@ -18,8 +19,12 @@ public class EventsController(IEventService eventService) : ControllerBase
     /// <returns>Список событий</returns>
     /// <response code="200">Успешно возвращен список событий</response>
     [HttpGet]
-    [ProducesResponseType<IEnumerable<EventResponse>>(StatusCodes.Status200OK)]
-    public IActionResult GetAll() => Ok(eventService.GetAll());
+    [ProducesResponseType(typeof(PaginatedResult<EventResponse>), StatusCodes.Status200OK)]
+    public ActionResult<PaginatedResult<EventResponse>> GetAll([FromQuery] GetEventsQuery query)
+    {
+        var result = eventService.GetAll(new Filters(query.Title, query.From, query.To), query.Page, query.PageSize);
+        return Ok(result.ToPaginatedResponse());
+    }
     
     /// <summary>
     /// Получить событие по идентификатору

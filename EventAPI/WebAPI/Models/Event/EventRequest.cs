@@ -2,7 +2,7 @@
 using Application.Contracts.DTOs;
 using WebAPI.Attributes;
 
-namespace WebAPI.Models;
+namespace WebAPI.Models.Event;
 
 /// <summary>
 /// Представляет данные для создания или изменения события.
@@ -25,7 +25,7 @@ public record EventRequest(
 	/// </summary>
 	/// <param name="eventId">Уникальный идентификатор события.</param>
 	/// <returns>Объект EventDto, готовый для передачи в бизнес-логику.</returns>
-	public EventDto ToDto(int eventId)
+	public EventDto ToDto(Guid eventId)
 	{
 		return new EventDto(eventId, Title, Description, StartAt, EndAt);
 	}

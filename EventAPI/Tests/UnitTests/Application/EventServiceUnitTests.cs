@@ -19,7 +19,7 @@ public class EventServiceUnitTests
 	public void Create_ValidData_Success()
 	{
 		//Arrange
-		var dto = new EventDto(1, "8 марта", "Международный женский день",
+		var dto = new EventDto(Guid.NewGuid(), "8 марта", "Международный женский день",
 			_now.AddMonths(-5), _now.AddMonths(-5).AddDays(2));
 
 		//Act
@@ -58,8 +58,8 @@ public class EventServiceUnitTests
 	public void GetById_ValidData_Success()
 	{
 		//Arrange
-		CreateEvents();
-		int id = 3;
+		Guid id = Guid.NewGuid();
+		CreateEvent(id);
 
 		//Act
 		var result = _service.GetById(id);
@@ -76,15 +76,16 @@ public class EventServiceUnitTests
 	public void Remove_ValidData_Success()
 	{
 		//Arrange
-		CreateEvents();
-		int id = 3;
+		Guid id = Guid.NewGuid();
+		CreateEvent(id);
 
 		//Act
 		_service.Delete(id);
 
 		//Assert
 		Action act = () => _service.GetById(id);
-		act.Should().Throw<EntityNotFoundException>().WithMessage("Сущность [Событие] с идентификатором [3] не найдена.");
+		act.Should().Throw<EntityNotFoundException>()
+			.WithMessage($"Сущность [Событие] с идентификатором [{id}] не найдена.");
 	}
 	
 	/// <summary>
@@ -176,13 +177,13 @@ public class EventServiceUnitTests
 	{
 		//Arrange
 		CreateEvents();
-		int id = 6;
+		Guid id = Guid.NewGuid();
 
 		//Act
 		Action act = () => _service.GetById(id);
 
 		//Assert
-		act.Should().Throw<EntityNotFoundException>().WithMessage("Сущность [Событие] с идентификатором [6] не найдена.");
+		act.Should().Throw<EntityNotFoundException>().WithMessage($"Сущность [Событие] с идентификатором [{id}] не найдена.");
 	}
 	
 	/// <summary>
@@ -193,13 +194,14 @@ public class EventServiceUnitTests
 	{
 		//Arrange
 		int totalCount = CreateEvents();
-		var dto = new EventDto(23, "Новые данные", "Новые данные", _now, _now.AddDays(-1));
+		Guid id = Guid.NewGuid();
+		var dto = new EventDto(id, "Новые данные", "Новые данные", _now, _now.AddDays(-1));
 
 		//Act
-		Action act = () => new EventService().Update(23, dto);
+		Action act = () => new EventService().Update(id, dto);
 
 		//Assert
-		act.Should().Throw<EntityNotFoundException>().WithMessage("Сущность [Событие] с идентификатором [23] не найдена.");
+		act.Should().Throw<EntityNotFoundException>().WithMessage($"Сущность [Событие] с идентификатором [{id}] не найдена.");
 		_service.GetAll(new Filters(), 1, 10).Items.Count.Should().Be(totalCount);
 	}
 	
@@ -210,15 +212,16 @@ public class EventServiceUnitTests
 	public void Add_InvalidData_Failed()
 	{
 		//Arrange
-		var dto = new EventDto(1, "День семьи", "Семейный праздник на площади", default, default);
+		Guid id = Guid.NewGuid();
+		var dto = new EventDto(id, "День семьи", "Семейный праздник на площади", default, default);
 
 		//Act
 		Action act = () => _service.Create(dto);
 
 		//Assert
 		act.Should().Throw<ArgumentException>();
-		Action act2 = () => _service.GetById(1);
-		act2.Should().Throw<EntityNotFoundException>().WithMessage("Сущность [Событие] с идентификатором [1] не найдена.");
+		Action act2 = () => _service.GetById(id);
+		act2.Should().Throw<EntityNotFoundException>().WithMessage($"Сущность [Событие] с идентификатором [{id}] не найдена.");
 	}
 	
 	/// <summary>
@@ -228,29 +231,35 @@ public class EventServiceUnitTests
 	public void Update_InvalidData_Failed()
 	{
 		//Arrange
-		CreateEvents();
-		var dto = new EventDto(1, "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(-1));
+		var id = Guid.NewGuid();
+		CreateEvent(id);
+		var dto = new EventDto(id, "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(-1));
 
 		//Act
-		Action act = () => _service.Update(1, dto);
+		Action act = () => _service.Update(id, dto);
 
 		//Assert
 		act.Should().Throw<ArgumentException>().WithMessage("Начало события должно быть раньше его завершения.");
-		var @event = _service.GetById(1);
+		var @event = _service.GetById(id);
 		@event.Title.Should().Be("Новый год");
 		@event.Description.Should().Be("Праздник наступления Нового Года");
 		@event.StartAt.Should().Be(_now);
 		@event.EndAt.Should().Be(_now.AddDays(7));
 	}
 	
+	private void CreateEvent(Guid guid)
+	{
+		_service.Create(new EventDto(guid, "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(7)));
+	}
+	
 	private int CreateEvents()
 	{
-		var count = 0;
-		_service.Create(new EventDto(++count, "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(7)));
-		_service.Create(new EventDto(++count, "Пасха", "Празднование Пасхи", _now.AddMonths(-1), _now.AddMonths(-1).AddDays(2)));
-		_service.Create(new EventDto(++count, "Детская конференция", "Детские праздники и мероприятия", _now.AddHours(-10), _now.AddHours(-9)));
-		_service.Create(new EventDto(++count, "8 марта", "Международный женский день", _now.AddDays(-8), _now.AddDays(5)));
-		_service.Create(new EventDto(++count, "Весна и март", "Международный день весны", _now.AddDays(-7), _now.AddDays(-6)));
+		var count = 5;
+		_service.Create(new EventDto(Guid.NewGuid(), "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(7)));
+		_service.Create(new EventDto(Guid.NewGuid(), "Пасха", "Празднование Пасхи", _now.AddMonths(-1), _now.AddMonths(-1).AddDays(2)));
+		_service.Create(new EventDto(Guid.NewGuid(),"Детская конференция", "Детские праздники и мероприятия", _now.AddHours(-10), _now.AddHours(-9)));
+		_service.Create(new EventDto(Guid.NewGuid(), "8 марта", "Международный женский день", _now.AddDays(-8), _now.AddDays(5)));
+		_service.Create(new EventDto(Guid.NewGuid(), "Весна и март", "Международный день весны", _now.AddDays(-7), _now.AddDays(-6)));
 		return count;
 	}
 }

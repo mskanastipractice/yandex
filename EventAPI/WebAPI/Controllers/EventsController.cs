@@ -2,6 +2,8 @@ using Application.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using WebAPI.Mappings;
 using WebAPI.Models;
+using WebAPI.Models.Booking;
+using WebAPI.Models.Event;
 
 namespace WebAPI.Controllers;
 
@@ -11,7 +13,7 @@ namespace WebAPI.Controllers;
 /// <param name="eventService">Сервис для работы с событиями</param>
 [ApiController]
 [Route("[controller]")]
-public class EventsController(IEventService eventService) : ControllerBase
+public class EventsController(IEventService eventService, IBookingService bookingService) : ControllerBase
 {
     /// <summary>
     /// Получить все события
@@ -33,10 +35,10 @@ public class EventsController(IEventService eventService) : ControllerBase
     /// <returns>Детальная информация о событии</returns>
     /// <response code="200">Событие найдено и успешно возвращено</response>
     /// <response code="404">Событие с указанным ID не найдено</response>
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:guid}")]
     [ProducesResponseType<EventResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetById([FromRoute] int id) => Ok(eventService.GetById(id));
+    public IActionResult GetById([FromRoute] Guid id) => Ok(eventService.GetById(id));
 
     /// <summary>
     /// Создать новое событие
@@ -62,11 +64,11 @@ public class EventsController(IEventService eventService) : ControllerBase
     /// <response code="204">Событие успешно обновлено (тело ответа пустое)</response>
     /// <response code="400">Некорректные данные запроса</response>
     /// <response code="404">Событие с указанным ID не найдено</response>
-    [HttpPut("{id:int}")]
+    [HttpPut("{id:guid}")]
     [ProducesResponseType<EventResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Update(int id, [FromBody] EventRequest request) 
+    public IActionResult Update(Guid id, [FromBody] EventRequest request) 
         => Ok(eventService.Update(id, request.ToDto(id)));
 
     /// <summary>
@@ -75,12 +77,28 @@ public class EventsController(IEventService eventService) : ControllerBase
     /// <param name="id">ID события для удаления</param>
     /// <response code="200">Событие успешно удалено</response>
     /// <response code="404">Событие с указанным ID не найдено</response>
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Delete([FromRoute] int id)
+    public IActionResult Delete([FromRoute] Guid id)
     {
         eventService.Delete(id);
         return Ok();
+    }
+    
+    /// <summary>
+    /// Создает заявку на бронирование.
+    /// </summary>
+    /// <param name="id">Идентификатор события.</param>
+    [HttpPost("{id:guid}/book")]
+    [ProducesResponseType(typeof(BookingResponse), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BookingResponse>> Book([FromRoute] Guid id)
+    {
+        var result = await bookingService.CreateBookingAsync(id);
+        var statusUrl = Url.Action(nameof(BookingsController.GetById), "Bookings", new { id = result.BookingId });
+        Response.Headers.Location = statusUrl;
+
+        return Accepted(result);
     }
 }

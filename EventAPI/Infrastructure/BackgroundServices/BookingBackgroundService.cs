@@ -83,7 +83,9 @@ internal class BookingBackgroundService(
 		{
 			booking.Reject(DateTime.UtcNow);
 			var @event = eventStore.Find(booking.EventId);
-			@event?.ReleaseSeats();
+			@event?.ReleaseSeats(); 
+			// невозможно возвращать места, если событие удалено, 
+			// место это часть event, нет события - нет мест
 		}
 		finally
 		{

@@ -18,7 +18,10 @@ public record EventRequest(
 	[NotDefault(ErrorMessage = "Дата начала события обязательна для заполнения.")]
 	DateTime StartAt,
 	[NotDefault(ErrorMessage = "Дата окончания события обязательна для заполнения.")]
-	DateTime EndAt)
+	DateTime EndAt,
+	[NotDefault(ErrorMessage = "Общее количество мест на событии обязательно для заполнения.")]
+	[Range(1, int.MaxValue, ErrorMessage = "Общее количество мест должно быть больше нуля.")]
+	int TotalSeats)
 {
 	/// <summary>
 	/// Преобразует запрос в DTO события для передачи в сервисный слой.
@@ -27,6 +30,6 @@ public record EventRequest(
 	/// <returns>Объект EventDto, готовый для передачи в бизнес-логику.</returns>
 	public EventDto ToDto(Guid eventId)
 	{
-		return new EventDto(eventId, Title, Description, StartAt, EndAt);
+		return new EventDto(eventId, Title, Description, StartAt, EndAt, TotalSeats);
 	}
 }

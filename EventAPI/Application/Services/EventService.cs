@@ -11,10 +11,7 @@ public class EventService : IEventService
 {
 	private readonly List<Event> _events = [];
 	
-	public IEnumerable<EventDto> GetAll()
-		=> _events.Select(EventDto.ToDto);
-
-	public PaginatedResultDto<EventDto> GetAll(Filters filters, int page, int pageSize)
+	public PaginatedResultDto<EventInfoDto> GetAll(Filters filters, int page, int pageSize)
 	{
 		IEnumerable<Event> filteredEvents = _events
 			.WhereIf(!string.IsNullOrWhiteSpace(filters.Title), x => x.Title.Contains(filters.Title!, StringComparison.OrdinalIgnoreCase))
@@ -22,26 +19,26 @@ public class EventService : IEventService
 			.WhereIf(filters.To.HasValue, x => x.Period.EndAt <= filters.To);
 
 		var totalItems = filteredEvents.Count();
-		var result = filteredEvents.Skip((page - 1) * pageSize).Take(pageSize).Select(EventDto.ToDto).ToArray();
+		var result = filteredEvents.Skip((page - 1) * pageSize).Take(pageSize).Select(EventInfoDto.ToDto).ToArray();
 
-		return new PaginatedResultDto<EventDto>(totalItems, page, result.Length, result);
+		return new PaginatedResultDto<EventInfoDto>(totalItems, page, result.Length, result);
 	}
 
-	public EventDto GetById(Guid eventId)
+	public EventInfoDto GetById(Guid eventId)
 	{
 		var eventData = _events.Find(e => e.Id == eventId);
-		return eventData != null ? EventDto.ToDto(eventData) : throw new EntityNotFoundException("Событие", eventId);
+		return eventData != null ? EventInfoDto.ToDto(eventData) : throw new EntityNotFoundException("Событие", eventId);
 	}
 
-	public EventDto Create(EventDto dto)
+	public Task<EventInfoDto> CreateAsync(EventDto dto)
 	{
-		var eventData = Event.Create(dto.Id, dto.Title, dto.Description, EventPeriod.Create(dto.StartAt, dto.EndAt));
+		var eventData = Event.Create(dto.Id, dto.Title, dto.Description, EventPeriod.Create(dto.StartAt, dto.EndAt), dto.TotalSeats);
 		_events.Add(eventData);
 		
-		return EventDto.ToDto(eventData) ;
+		return Task.FromResult(EventInfoDto.ToDto(eventData));
 	}
 
-	public EventDto Update(Guid eventId, EventDto dto)
+	public EventInfoDto Update(Guid eventId, EventDto dto)
 	{
 		var eventToUpdate = _events.Find(e => e.Id == eventId);
 
@@ -51,7 +48,7 @@ public class EventService : IEventService
 		}
 
 		eventToUpdate.Update(dto.Title, dto.Description, EventPeriod.Create(dto.StartAt, dto.EndAt));
-		return EventDto.ToDto(eventToUpdate);
+		return EventInfoDto.ToDto(eventToUpdate);
 	}
 
 	public void Delete(Guid eventId)

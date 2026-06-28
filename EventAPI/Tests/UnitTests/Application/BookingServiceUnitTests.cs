@@ -20,8 +20,8 @@ public class BookingServiceUnitTests
 	{
 		_service = new(new InMemoryBookingTaskQueue(), _eventService);
 		var now = DateTime.UtcNow;
-		_eventService.Create(new EventDto(_eventId1, "Новый год", "Праздник наступления Нового Года", now, now.AddDays(7)));
-		_eventService.Create(new EventDto(_eventId2, "Пасха", "Празднование Пасхи", now.AddMonths(-1), now.AddMonths(-1).AddDays(2)));
+		_eventService.CreateAsync(new EventDto(_eventId1, "Новый год", "Праздник наступления Нового Года", now, now.AddDays(7), 10));
+		_eventService.CreateAsync(new EventDto(_eventId2, "Пасха", "Празднование Пасхи", now.AddMonths(-1), now.AddMonths(-1).AddDays(2), 10));
 	}
 
 	/// <summary>

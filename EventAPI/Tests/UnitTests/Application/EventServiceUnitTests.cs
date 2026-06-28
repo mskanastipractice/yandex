@@ -16,14 +16,14 @@ public class EventServiceUnitTests
 	/// Проверяет создание события.
 	/// </summary>
 	[Fact]
-	public void Create_ValidData_Success()
+	public async Task Create_ValidData_Success()
 	{
 		//Arrange
 		var dto = new EventDto(Guid.NewGuid(), "8 марта", "Международный женский день",
-			_now.AddMonths(-5), _now.AddMonths(-5).AddDays(2));
+			_now.AddMonths(-5), _now.AddMonths(-5).AddDays(2), 10);
 
 		//Act
-		var result = _service.Create(dto);
+		var result = await _service.CreateAsync(dto);
 
 		//Assert
 		Assert.NotNull(result);
@@ -38,10 +38,10 @@ public class EventServiceUnitTests
 	/// Проверяет получение всех событий.
 	/// </summary>
 	[Fact]
-	public void GetBy_ValidData_Success()
+	public async Task GetBy_ValidData_Success()
 	{
 		//Arrange
-		var totalCount = CreateEvents();
+		var totalCount = await CreateEvents();
 
 		//Act
 		var result = _service.GetAll(new Filters(), 1, 10);
@@ -59,7 +59,7 @@ public class EventServiceUnitTests
 	{
 		//Arrange
 		Guid id = Guid.NewGuid();
-		CreateEvent(id);
+		CreateEventAsync(id);
 
 		//Act
 		var result = _service.GetById(id);
@@ -77,7 +77,7 @@ public class EventServiceUnitTests
 	{
 		//Arrange
 		Guid id = Guid.NewGuid();
-		CreateEvent(id);
+		CreateEventAsync(id);
 
 		//Act
 		_service.Delete(id);
@@ -138,10 +138,10 @@ public class EventServiceUnitTests
 	[InlineData(1, 2, 2)]
 	[InlineData(2, 2, 2)]
 	[InlineData(3, 1, 1)]
-	public void GetBy_Pagination_Success(int page, int pageSize, int itemsPerPage)
+	public async Task GetBy_Pagination_Success(int page, int pageSize, int itemsPerPage)
 	{
 		//Arrange
-		var totalCount = CreateEvents();
+		var totalCount = await CreateEvents();
 
 		//Act
 		var result = _service.GetAll(new Filters(), page, pageSize);
@@ -190,12 +190,12 @@ public class EventServiceUnitTests
 	/// Проверяет обновление события с несуществующим ID.
 	/// </summary>
 	[Fact]
-	public void Update_InvalidID_Failed()
+	public async Task Update_InvalidID_Failed()
 	{
 		//Arrange
-		int totalCount = CreateEvents();
+		int totalCount = await CreateEvents();
 		Guid id = Guid.NewGuid();
-		var dto = new EventDto(id, "Новые данные", "Новые данные", _now, _now.AddDays(-1));
+		var dto = new EventDto(id, "Новые данные", "Новые данные", _now, _now.AddDays(-1), 10);
 
 		//Act
 		Action act = () => new EventService().Update(id, dto);
@@ -213,13 +213,13 @@ public class EventServiceUnitTests
 	{
 		//Arrange
 		Guid id = Guid.NewGuid();
-		var dto = new EventDto(id, "День семьи", "Семейный праздник на площади", default, default);
+		var dto = new EventDto(id, "День семьи", "Семейный праздник на площади", default, default, 10);
 
 		//Act
-		Action act = () => _service.Create(dto);
+		Func<Task> act = () => _service.CreateAsync(dto);
 
 		//Assert
-		act.Should().Throw<ArgumentException>();
+		act.Should().ThrowAsync<ArgumentException>();
 		Action act2 = () => _service.GetById(id);
 		act2.Should().Throw<EntityNotFoundException>().WithMessage($"Сущность [Событие] с идентификатором [{id}] не найдена.");
 	}
@@ -228,12 +228,12 @@ public class EventServiceUnitTests
 	/// Проверяет обновление события с невалидными данными.
 	/// </summary>
 	[Fact]
-	public void Update_InvalidData_Failed()
+	public async Task Update_InvalidData_Failed()
 	{
 		//Arrange
 		var id = Guid.NewGuid();
-		CreateEvent(id);
-		var dto = new EventDto(id, "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(-1));
+		await CreateEventAsync(id);
+		var dto = new EventDto(id, "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(-1), 10);
 
 		//Act
 		Action act = () => _service.Update(id, dto);
@@ -247,19 +247,19 @@ public class EventServiceUnitTests
 		@event.EndAt.Should().Be(_now.AddDays(7));
 	}
 	
-	private void CreateEvent(Guid guid)
+	private async Task CreateEventAsync(Guid guid)
 	{
-		_service.Create(new EventDto(guid, "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(7)));
+		await _service.CreateAsync(new EventDto(guid, "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(7), 10));
 	}
 	
-	private int CreateEvents()
+	private async Task<int> CreateEvents()
 	{
 		var count = 5;
-		_service.Create(new EventDto(Guid.NewGuid(), "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(7)));
-		_service.Create(new EventDto(Guid.NewGuid(), "Пасха", "Празднование Пасхи", _now.AddMonths(-1), _now.AddMonths(-1).AddDays(2)));
-		_service.Create(new EventDto(Guid.NewGuid(),"Детская конференция", "Детские праздники и мероприятия", _now.AddHours(-10), _now.AddHours(-9)));
-		_service.Create(new EventDto(Guid.NewGuid(), "8 марта", "Международный женский день", _now.AddDays(-8), _now.AddDays(5)));
-		_service.Create(new EventDto(Guid.NewGuid(), "Весна и март", "Международный день весны", _now.AddDays(-7), _now.AddDays(-6)));
+		await _service.CreateAsync(new EventDto(Guid.NewGuid(), "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(7), 10));
+		await _service.CreateAsync(new EventDto(Guid.NewGuid(), "Пасха", "Празднование Пасхи", _now.AddMonths(-1), _now.AddMonths(-1).AddDays(2), 10));
+		await _service.CreateAsync(new EventDto(Guid.NewGuid(),"Детская конференция", "Детские праздники и мероприятия", _now.AddHours(-10), _now.AddHours(-9), 10));
+		await _service.CreateAsync(new EventDto(Guid.NewGuid(), "8 марта", "Международный женский день", _now.AddDays(-8), _now.AddDays(5), 10));
+		await _service.CreateAsync(new EventDto(Guid.NewGuid(), "Весна и март", "Международный день весны", _now.AddDays(-7), _now.AddDays(-6), 10));
 		return count;
 	}
 }

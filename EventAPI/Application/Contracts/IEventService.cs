@@ -12,7 +12,7 @@ public interface IEventService
     /// Возвращает все доступные события.
     /// </summary>
     /// <returns>Коллекция событий.</returns>
-    PaginatedResultDto<EventDto> GetAll(Filters filters, int page, int pageSize);
+    PaginatedResultDto<EventInfoDto> GetAll(Filters filters, int page, int pageSize);
     
     /// <summary>
     /// Возвращает событие по его идентификатору.
@@ -20,14 +20,14 @@ public interface IEventService
     /// <param name="eventId">Идентификатор события.</param>
     /// <returns>DTO события.</returns>
     /// <exception cref="EntityNotFoundException">Выбрасывается, если событие с указанным ID не найдено.</exception>
-    EventDto GetById(Guid eventId);
+    EventInfoDto GetById(Guid eventId);
     
     /// <summary>
     /// Создаёт новое событие.
     /// </summary>
     /// <param name="dto">Данные для создания события.</param>
     /// <returns>DTO созданного события.</returns>
-    EventDto Create(EventDto dto);
+    Task<EventInfoDto> CreateAsync(EventDto dto);
     
     /// <summary>
     /// Обновляет существующее событие.
@@ -36,7 +36,7 @@ public interface IEventService
     /// <param name="dto">Новые данные события.</param>
     /// <returns>DTO обновлённого события.</returns>
     /// <exception cref="EntityNotFoundException">Выбрасывается, если событие с указанным ID не найдено.</exception>
-    EventDto Update(Guid eventId, EventDto dto);
+    EventInfoDto Update(Guid eventId, EventDto dto);
     
     /// <summary>
     /// Удаляет событие по идентификатору.

@@ -2,7 +2,7 @@
 
 namespace Application.Contracts.DTOs;
 
-public record EventDto(int Id, string Title, string? Description, DateTime StartAt, DateTime EndAt){
+public record EventDto(Guid Id, string Title, string? Description, DateTime StartAt, DateTime EndAt){
     public static EventDto ToDto(Event entity) => new(
         entity.Id,
         entity.Title,

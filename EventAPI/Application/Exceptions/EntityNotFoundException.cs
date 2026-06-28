@@ -5,5 +5,5 @@
 /// </summary>
 /// <param name="entityName">Имя типа сущности (например, "Событие").</param>
 /// <param name="entityId">Идентификатор отсутствующей сущности.</param>
-public class EntityNotFoundException(string entityName, int entityId)
+public class EntityNotFoundException(string entityName, Guid entityId)
 	: Exception($"Сущность [{entityName}] с идентификатором [{entityId}] не найдена.");

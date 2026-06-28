@@ -2,7 +2,7 @@
 using Application.Contracts.DTOs;
 using WebAPI.Attributes;
 
-namespace WebAPI.Models;
+namespace WebAPI.Models.Event;
 
 /// <summary>
 /// Представляет данные для создания события.
@@ -13,7 +13,7 @@ namespace WebAPI.Models;
 /// <param name="StartAt">Дата начала.</param>
 /// <param name="EndAt">Дата окончания.</param>
 public record CreateEventRequest(
-	[Required] int Id,
+	[Required] Guid Id,
 	[Required(ErrorMessage = "Наименование события обязательно для заполнения.")]
 	string Title,
 	string? Description,

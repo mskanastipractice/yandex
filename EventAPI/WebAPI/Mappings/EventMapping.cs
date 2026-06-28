@@ -1,5 +1,6 @@
 ﻿using Application.Contracts.DTOs;
 using WebAPI.Models;
+using WebAPI.Models.Event;
 
 namespace WebAPI.Mappings;
 

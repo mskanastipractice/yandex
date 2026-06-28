@@ -1,10 +1,12 @@
 using System.Reflection;
 using Application.DependencyInjection;
+using Infrastructure.DependencyInjection;
 using WebAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices();
 builder.Services.AddControllers();
 
 

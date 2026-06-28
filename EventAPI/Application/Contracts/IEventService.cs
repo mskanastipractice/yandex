@@ -20,7 +20,7 @@ public interface IEventService
     /// <param name="eventId">Идентификатор события.</param>
     /// <returns>DTO события.</returns>
     /// <exception cref="EntityNotFoundException">Выбрасывается, если событие с указанным ID не найдено.</exception>
-    EventDto GetById(int eventId);
+    EventDto GetById(Guid eventId);
     
     /// <summary>
     /// Создаёт новое событие.
@@ -36,12 +36,12 @@ public interface IEventService
     /// <param name="dto">Новые данные события.</param>
     /// <returns>DTO обновлённого события.</returns>
     /// <exception cref="EntityNotFoundException">Выбрасывается, если событие с указанным ID не найдено.</exception>
-    EventDto Update(int eventId, EventDto dto);
+    EventDto Update(Guid eventId, EventDto dto);
     
     /// <summary>
     /// Удаляет событие по идентификатору.
     /// </summary>
     /// <param name="eventId">Идентификатор удаляемого события.</param>
     /// <exception cref="EntityNotFoundException">Выбрасывается, если событие с указанным ID не найдено.</exception>
-    void Delete(int eventId);
+    void Delete(Guid eventId);
 }

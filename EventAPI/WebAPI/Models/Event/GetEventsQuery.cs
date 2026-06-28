@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace WebAPI.Models;
+namespace WebAPI.Models.Event;
 
 /// <summary>
 /// Представляет данные для пагинации и фильтрации.

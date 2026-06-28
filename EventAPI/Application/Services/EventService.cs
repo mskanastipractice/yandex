@@ -27,7 +27,7 @@ public class EventService : IEventService
 		return new PaginatedResultDto<EventDto>(totalItems, page, result.Length, result);
 	}
 
-	public EventDto GetById(int eventId)
+	public EventDto GetById(Guid eventId)
 	{
 		var eventData = _events.Find(e => e.Id == eventId);
 		return eventData != null ? EventDto.ToDto(eventData) : throw new EntityNotFoundException("Событие", eventId);
@@ -41,7 +41,7 @@ public class EventService : IEventService
 		return EventDto.ToDto(eventData) ;
 	}
 
-	public EventDto Update(int eventId, EventDto dto)
+	public EventDto Update(Guid eventId, EventDto dto)
 	{
 		var eventToUpdate = _events.Find(e => e.Id == eventId);
 
@@ -54,7 +54,7 @@ public class EventService : IEventService
 		return EventDto.ToDto(eventToUpdate);
 	}
 
-	public void Delete(int eventId)
+	public void Delete(Guid eventId)
 	{
 		var eventToDelete = _events.Find(e => e.Id == eventId);
 

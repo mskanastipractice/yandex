@@ -43,6 +43,11 @@ internal class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Excepti
 				statusCode = StatusCodes.Status404NotFound;
 				message = exception.Message;
 				break;
+			
+			case NoAvailableSeatsException:
+				statusCode = StatusCodes.Status409Conflict;
+				message = exception.Message;
+				break;
 
 			case ArgumentException:
 				statusCode = StatusCodes.Status400BadRequest;

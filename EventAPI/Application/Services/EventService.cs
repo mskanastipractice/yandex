@@ -7,13 +7,11 @@ using Domain.Entities.ValueObjects;
 
 namespace Application.Services;
 
-public class EventService : IEventService
+public class EventService(IEventRepository repository) : IEventService
 {
-	private readonly List<Event> _events = [];
-	
 	public PaginatedResultDto<EventInfoDto> GetAll(Filters filters, int page, int pageSize)
 	{
-		IEnumerable<Event> filteredEvents = _events
+		IEnumerable<Event> filteredEvents = repository.GetAll()
 			.WhereIf(!string.IsNullOrWhiteSpace(filters.Title), x => x.Title.Contains(filters.Title!, StringComparison.OrdinalIgnoreCase))
 			.WhereIf(filters.From.HasValue, x => x.Period.StartAt >= filters.From)
 			.WhereIf(filters.To.HasValue, x => x.Period.EndAt <= filters.To);
@@ -26,21 +24,21 @@ public class EventService : IEventService
 
 	public EventInfoDto GetById(Guid eventId)
 	{
-		var eventData = _events.Find(e => e.Id == eventId);
+		var eventData = repository.Find(eventId);
 		return eventData != null ? EventInfoDto.ToDto(eventData) : throw new EntityNotFoundException("Событие", eventId);
 	}
 
 	public Task<EventInfoDto> CreateAsync(EventDto dto)
 	{
 		var eventData = Event.Create(dto.Id, dto.Title, dto.Description, EventPeriod.Create(dto.StartAt, dto.EndAt), dto.TotalSeats);
-		_events.Add(eventData);
+		repository.Add(eventData);
 		
 		return Task.FromResult(EventInfoDto.ToDto(eventData));
 	}
 
 	public EventInfoDto Update(Guid eventId, EventDto dto)
 	{
-		var eventToUpdate = _events.Find(e => e.Id == eventId);
+		var eventToUpdate = repository.Find(eventId);
 
 		if (eventToUpdate is null)
 		{
@@ -53,13 +51,25 @@ public class EventService : IEventService
 
 	public void Delete(Guid eventId)
 	{
-		var eventToDelete = _events.Find(e => e.Id == eventId);
+		var eventToDelete = repository.Find(eventId);
 
 		if (eventToDelete is null)
 		{
 			throw new EntityNotFoundException("Событие", eventId);
 		}
 
-		_events.Remove(eventToDelete);
+		repository.Remove(eventToDelete);
+	}
+	
+	public bool TryReserveSeats(Guid eventId, int seats = 1)
+	{
+		var eventToReserve = repository.Find(eventId);
+
+		if (eventToReserve is null)
+		{
+			throw new EntityNotFoundException("Событие", eventId);
+		}
+
+		return eventToReserve.TryReserveSeats(seats);
 	}
 }

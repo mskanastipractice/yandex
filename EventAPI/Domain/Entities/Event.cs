@@ -39,9 +39,13 @@ public class Event
     
     public bool TryReserveSeats(int count = 1)
     {
-        bool result = !(AvailableSeats < count);
+        if (AvailableSeats < count)
+        {
+            return false;
+        }
+		
         AvailableSeats -= count;
-        return result;
+        return true;
     }
 
     public void ReleaseSeats(int count = 1) => AvailableSeats += count;

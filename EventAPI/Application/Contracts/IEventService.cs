@@ -44,4 +44,11 @@ public interface IEventService
     /// <param name="eventId">Идентификатор удаляемого события.</param>
     /// <exception cref="EntityNotFoundException">Выбрасывается, если событие с указанным ID не найдено.</exception>
     void Delete(Guid eventId);
+
+    /// <summary>
+    /// Проверяет доступность бронирования мест на событие
+    /// </summary>
+    /// <param name="eventId">Идентификатор события.</param>
+    /// <param name="count">Количество мест.</param>
+    bool TryReserveSeats(Guid eventId, int count = 1);
 }

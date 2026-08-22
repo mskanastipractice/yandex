@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using Application.Contracts.DTOs;
 using WebAPI.Attributes;
 
@@ -20,11 +20,14 @@ public record CreateEventRequest(
 	[NotDefault(ErrorMessage = "Дата начала события обязательна для заполнения.")]
 	DateTime StartAt,
 	[NotDefault(ErrorMessage = "Дата окончания события обязательна для заполнения.")]
-	DateTime EndAt)
-	: EventRequest(Title, Description, StartAt, EndAt)
+	DateTime EndAt,
+	[NotDefault(ErrorMessage = "Общее количество мест на событии обязательно для заполнения.")]
+	[Range(1, int.MaxValue, ErrorMessage = "Общее количество мест должно быть больше нуля.")]
+	int TotalSeats)
+	: EventRequest(Title, Description, StartAt, EndAt, TotalSeats)
 {
 	public EventDto ToDto()
 	{
-		return new EventDto(Id, Title, Description, StartAt, EndAt);
+		return new EventDto(Id, Title, Description, StartAt, EndAt, TotalSeats);
 	}
 }

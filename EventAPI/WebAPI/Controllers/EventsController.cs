@@ -50,9 +50,9 @@ public class EventsController(IEventService eventService, IBookingService bookin
     [HttpPost]
     [ProducesResponseType<EventResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public IActionResult Create([FromBody] CreateEventRequest request)
+    public async Task<IActionResult> Create([FromBody] CreateEventRequest request)
     {
-        var result = eventService.Create(request.ToDto());
+        var result = await eventService.CreateAsync(request.ToDto());
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 

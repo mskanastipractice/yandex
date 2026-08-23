@@ -1,25 +1,27 @@
 using Application.Contracts;
 using Domain.Entities;
 using Domain.Enums;
+using Infrastructure.DAL;
 
 namespace Infrastructure.Repositories;
 
-public class BookingRepository : IBookingRepository
+public class BookingRepository(AppDbContext context) : IBookingRepository
 {
-    private readonly List<Booking> _bookings = [];
+    public ValueTask<Booking?> FindAsync(Guid bookingId, CancellationToken cancellationToken) 
+        => context.Bookings.FindAsync([bookingId], cancellationToken);
 	
-    public Booking? Find(Guid bookingId)
+    public Task<Booking[]> GetPendingAsync(CancellationToken cancellationToken) 
     {
-        return _bookings.Find(b => b.Id == bookingId);
+        var result = context.Bookings.Where(b => b.Status == BookingStatus.Pending).ToArray();
+        return Task.FromResult(result);
     }
-	
-    public IReadOnlyCollection<Booking> GetPending()
+    
+    public Task AddAsync(Booking booking)
     {
-        return _bookings.Where(b => b.Status == BookingStatus.Pending).ToArray();
+        context.Bookings.Add(booking);
+        return Task.CompletedTask;
     }
 
-    public void Add(Booking booking)
-    {
-        _bookings.Add(booking);
-    }
+    public Task SaveChangesAsync(CancellationToken cancellationToken)
+        => context.SaveChangesAsync(cancellationToken);
 }

@@ -4,6 +4,9 @@ namespace Domain.Entities;
 
 public class Event 
 {
+    private Event()
+    {
+    }
     private Event(Guid id, string title, string? description, EventPeriod period, int totalSeats)
     {
         Id = id;
@@ -19,12 +22,13 @@ public class Event
     }
     
     public Guid Id { get; private set; }
-    public string Title { get; private set; }
+    public string Title { get; private set; } = null!;
     public string? Description { get; private set; }
-    public EventPeriod Period { get; private set; }
+    public EventPeriod Period { get; private set; } = null!;
     public int TotalSeats { get; private set; }
     public int AvailableSeats { get; private set; }
     
+    public IReadOnlyCollection<Booking> Bookings { get; private set; } = null!;
     public static Event Create(Guid id, string title, string? description, EventPeriod period, int totalSeats)
     {
         return new Event(id, title, description, period, totalSeats);

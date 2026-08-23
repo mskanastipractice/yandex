@@ -13,31 +13,35 @@ public interface IBookingService
 	/// Возвращает бронирование по его идентификатору.
 	/// </summary>
 	/// <param name="bookingId">Идентификатор бронирования.</param>
+	/// <param name="cancellationToken">Токен отмены</param>
 	/// <returns>DTO бронирования.</returns>
 	/// <exception cref="EntityNotFoundException">Выбрасывается, если бронирование с указанным ID не найдено.</exception>
-	Task<BookingDto> GetBookingByIdAsync(Guid bookingId);
+	Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken);
 
 	/// <summary>
 	/// Создаёт новое бронирование.
 	/// </summary>
 	/// <param name="eventId">Идентификатор события для бронирования.</param>
+	/// <param name="cancellationToken">Токен отмены</param>
 	/// <returns>DTO созданного бронирования.</returns>
 	/// <exception cref="ValidationException">Выбрасывается, если переданные данные не проходят валидацию.</exception>
-	Task<BookingDto> CreateBookingAsync(Guid eventId);
+	Task<BookingDto> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken);
 
 	/// <summary>
 	/// Подтверждает бронирование по его идентификатору.
 	/// </summary>
 	/// <param name="bookingId">Идентификатор подтверждаемого бронирования.</param>
+	/// <param name="cancellationToken">Токен отмены</param>
 	/// <exception cref="EntityNotFoundException">Выбрасывается, если бронирование с указанным ID не найдено.</exception>
 	/// <exception cref="InvalidOperationException">Выбрасывается, если бронирование уже подтверждено или отклонено.</exception>
-	void Confirm(Guid bookingId);
+	Task ConfirmAsync(Guid bookingId, CancellationToken cancellationToken);
 
 	/// <summary>
 	/// Отклоняет бронирование по его идентификатору.
 	/// </summary>
 	/// <param name="bookingId">Идентификатор отклоняемого бронирования.</param>
+	/// <param name="cancellationToken">Токен отмены</param>
 	/// <exception cref="EntityNotFoundException">Выбрасывается, если бронирование с указанным ID не найдено.</exception>
 	/// <exception cref="InvalidOperationException">Выбрасывается, если бронирование уже подтверждено или отклонено.</exception>
-	void Reject(Guid bookingId);
+	Task RejectAsync(Guid bookingId, CancellationToken cancellationToken);
 }

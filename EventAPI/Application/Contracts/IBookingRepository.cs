@@ -4,9 +4,11 @@ namespace Application.Contracts;
 
 public interface IBookingRepository
 {
-	Booking? Find(Guid bookingId);
+	ValueTask<Booking?> FindAsync(Guid bookingId, CancellationToken cancellationToken);
 
-	IReadOnlyCollection<Booking> GetPending();
+	Task<Booking[]> GetPendingAsync(CancellationToken cancellationToken);
 
-	void Add(Booking booking);
+	Task AddAsync(Booking booking);
+	
+	Task SaveChangesAsync(CancellationToken cancellationToken);
 }

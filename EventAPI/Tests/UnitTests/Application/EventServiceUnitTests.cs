@@ -2,21 +2,56 @@
 using Application.Contracts.DTOs;
 using Application.Exceptions;
 using Application.Services;
+using Domain.Entities;
+using Domain.Entities.ValueObjects;
 using FluentAssertions;
+using Infrastructure.DAL;
 using Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Tests.Application;
 
-public class EventServiceUnitTests
+public class EventServiceUnitTests: IDisposable
 {
 	private readonly DateTime _now = DateTime.UtcNow;
-	private readonly IEventRepository _eventRepository = new EventRepository(); 
-	private readonly EventService _eventService;
+	private const int TotalSeats = 5;
+	protected readonly IServiceProvider ServiceProvider;
 
 	public EventServiceUnitTests()
 	{
-		_eventService = new EventService(_eventRepository);
+		var _databaseName = Guid.NewGuid().ToString();
+		var services = new ServiceCollection();
+		services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(_databaseName));
+		services.AddScoped<IEventRepository, EventRepository>();
+		services.AddScoped<IEventService, EventService>();
+		ServiceProvider = services.BuildServiceProvider();
+		
+		SeedDatabase();
+	}
+	
+	private void SeedDatabase()
+	{
+		using var scope = ServiceProvider.CreateScope();
+		var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+		var now = DateTime.UtcNow;
+		
+		var count = 5;
+		
+		context.Events.AddRange(
+			Event.Create(Guid.NewGuid(), "Новый год", "Праздник наступления Нового Года",
+				EventPeriod.Create(now, now.AddDays(7)), 10),
+			Event.Create(Guid.NewGuid(), "Пасха", "Празднование Пасхи",
+				EventPeriod.Create(_now.AddMonths(-1), _now.AddMonths(-1).AddDays(2)), 10),
+			Event.Create(Guid.NewGuid(), "Детская конференция", "Детские праздники и мероприятия",
+				EventPeriod.Create(_now.AddHours(-10), _now.AddHours(-9)), 10),
+			Event.Create(Guid.NewGuid(), "8 марта", "Международный женский день",
+				EventPeriod.Create(_now.AddDays(-8), _now.AddDays(5)), 10),
+			Event.Create(Guid.NewGuid(), "Весна и март",  "Международный день весны",
+				EventPeriod.Create(_now.AddDays(-7), _now.AddDays(-6)), 10));
+
+		context.SaveChanges();
 	}
 	
 	/// <summary>
@@ -28,9 +63,14 @@ public class EventServiceUnitTests
 		//Arrange
 		var dto = new EventDto(Guid.NewGuid(), "8 марта", "Международный женский день",
 			_now.AddMonths(-5), _now.AddMonths(-5).AddDays(2), 10);
+		EventInfoDto result;
 
 		//Act
-		var result = await _eventService.CreateAsync(dto);
+		using (var scope = ServiceProvider.CreateScope())
+		{
+			var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+			result = await service.CreateAsync(dto, CancellationToken.None);
+		}
 
 		//Assert
 		Assert.NotNull(result);
@@ -48,28 +88,37 @@ public class EventServiceUnitTests
 	public async Task GetBy_ValidData_Success()
 	{
 		//Arrange
-		var totalCount = await CreateEvents();
+		PaginatedResultDto<EventInfoDto> result;
 
 		//Act
-		var result = _eventService.GetAll(new Filters(), 1, 10);
+		using (var scope = ServiceProvider.CreateScope())
+		{
+			var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+			result = await service.GetAllAsync(new Filters(), 1, 10, CancellationToken.None);
+		}
 
 		//Assert
 		Assert.NotNull(result);
-		Assert.Equal(result.Items.Count, totalCount);
+		Assert.Equal(TotalSeats, result.Items.Count);
 	}
 	
 	/// <summary>
 	/// Проверяет получение события по ID.
 	/// </summary>
 	[Fact]
-	public void GetById_ValidData_Success()
+	public async Task GetById_ValidData_Success()
 	{
 		//Arrange
 		Guid id = Guid.NewGuid();
-		CreateEventAsync(id);
+		EventInfoDto result;
 
 		//Act
-		var result = _eventService.GetById(id);
+		using var scope = ServiceProvider.CreateScope();
+		var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+
+		await service.CreateAsync(new EventDto(id, "Новый год", "Праздник наступления Нового Года", _now,
+			_now.AddDays(7), 10), CancellationToken.None);
+		result = await service.GetByIdAsync(id, CancellationToken.None);
 
 		//Assert
 		Assert.NotNull(result);
@@ -80,19 +129,19 @@ public class EventServiceUnitTests
 	/// Проверяет удаление существующего события.
 	/// </summary>
 	[Fact]
-	public void Remove_ValidData_Success()
+	public async Task Remove_ValidData_Success()
 	{
-		//Arrange
-		Guid id = Guid.NewGuid();
-		CreateEventAsync(id);
-
 		//Act
-		_eventService.Delete(id);
+		using var scope = ServiceProvider.CreateScope();
+		var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+		var all = await service.GetAllAsync(new Filters(),1,1, CancellationToken.None);
+		var firstid = all.Items.First().Id;
+		await service.DeleteAsync(firstid, CancellationToken.None);
 
 		//Assert
-		Action act = () => _eventService.GetById(id);
-		act.Should().Throw<EntityNotFoundException>()
-			.WithMessage($"Сущность [Событие] с идентификатором [{id}] не найдена.");
+		Func<Task> act = () => service.GetByIdAsync(firstid, CancellationToken.None);
+		await act.Should().ThrowAsync<EntityNotFoundException>()
+			.WithMessage($"Сущность [Событие] с идентификатором [{firstid}] не найдена.");
 	}
 	
 	/// <summary>
@@ -103,13 +152,17 @@ public class EventServiceUnitTests
 	[InlineData("дЕТ")]
 	[InlineData("ДЕТ")]
 	[InlineData("конференция")]
-	public void GetBy_FilterByTitle_Success(string title)
+	public async Task GetBy_FilterByTitle_Success(string title)
 	{
 		//Arrange
-		CreateEvents();
-
+		PaginatedResultDto<EventInfoDto> result;
+		
 		//Act
-		var result = _eventService.GetAll(new Filters(Title: title), 1, 10);
+		using (var scope = ServiceProvider.CreateScope())
+		{
+			var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+			result = await service.GetAllAsync(new Filters(Title: title), 1, 10, CancellationToken.None);
+		}
 
 		//Assert
 		result.Should().NotBeNull();
@@ -124,13 +177,17 @@ public class EventServiceUnitTests
 	[Theory]
 	[InlineData(1, 0)]
 	[InlineData(-7, 3)]
-	public void GetBy_FilterByFrom_Success(int daysToAdd, int totalItems)
+	public async Task GetBy_FilterByFrom_Success(int daysToAdd, int totalItems)
 	{
 		//Arrange
-		CreateEvents();
+		PaginatedResultDto<EventInfoDto> result;
 
 		//Act
-		var result = _eventService.GetAll(new Filters(From: _now.AddDays(daysToAdd)), 1, 10);
+		using var scope = ServiceProvider.CreateScope();
+		
+		var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+		result = await service.GetAllAsync(new Filters(From: _now.AddDays(daysToAdd)), 1, 10, CancellationToken.None);
+		
 
 		//Assert
 		result.Should().NotBeNull();
@@ -148,13 +205,17 @@ public class EventServiceUnitTests
 	public async Task GetBy_Pagination_Success(int page, int pageSize, int itemsPerPage)
 	{
 		//Arrange
-		var totalCount = await CreateEvents();
+		PaginatedResultDto<EventInfoDto> result;
 
 		//Act
-		var result = _eventService.GetAll(new Filters(), page, pageSize);
+		using (var scope = ServiceProvider.CreateScope())
+		{
+			var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+			result = await service.GetAllAsync(new Filters(), page, pageSize, CancellationToken.None);
+		}
 
 		//Assert
-		result.TotalItems.Should().Be(totalCount);
+		result.TotalItems.Should().Be(TotalSeats);
 		result.CurrentPage.Should().Be(page);
 		result.ItemsPerPage.Should().Be(itemsPerPage);
 		result.Items.Count.Should().Be(itemsPerPage);
@@ -164,13 +225,16 @@ public class EventServiceUnitTests
 	/// Проверяет получение события по несуществующему ID.
 	/// </summary>
 	[Fact]
-	public void GetBy_CombinedFilterBy_Success()
+	public async Task GetBy_CombinedFilterBy_Success()
 	{
 		//Arrange
-		CreateEvents();
+		PaginatedResultDto<EventInfoDto> result;
 
 		//Act
-		var result = _eventService.GetAll(new Filters(Title: "Март", _now.AddDays(-10), _now.AddDays(6)), 1, 10);
+		using var scope = ServiceProvider.CreateScope();
+		var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+		result = await service.GetAllAsync(new Filters(Title: "Март", _now.AddDays(-10), _now.AddDays(6)), 1, 10, CancellationToken.None);
+		
 
 		//Assert
 		result.Items.Count.Should().Be(2);
@@ -180,17 +244,22 @@ public class EventServiceUnitTests
 	/// Проверяет получение события по несуществующему ID.
 	/// </summary>
 	[Fact]
-	public void GetById_InvalidData_Failed()
+	public async Task GetById_InvalidData_Failed()
 	{
 		//Arrange
-		CreateEvents();
 		Guid id = Guid.NewGuid();
 
-		//Act
-		Action act = () => _eventService.GetById(id);
+		//Act//Act
+		using var scope = ServiceProvider.CreateScope();
+		var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+		Func<Task> act = () =>
+			service.GetByIdAsync(id, CancellationToken.None);
 
 		//Assert
-		act.Should().Throw<EntityNotFoundException>().WithMessage($"Сущность [Событие] с идентификатором [{id}] не найдена.");
+		await act.Should()
+			.ThrowAsync<EntityNotFoundException>()
+			.WithMessage(
+				$"Сущность [Событие] с идентификатором [{id}] не найдена.");
 	}
 	
 	/// <summary>
@@ -200,35 +269,39 @@ public class EventServiceUnitTests
 	public async Task Update_InvalidID_Failed()
 	{
 		//Arrange
-		int totalCount = await CreateEvents();
 		Guid id = Guid.NewGuid();
 		var dto = new EventDto(id, "Новые данные", "Новые данные", _now, _now.AddDays(-1), 10);
 
 		//Act
-		Action act = () => new EventService(_eventRepository).Update(id, dto);
-
+		using var scope = ServiceProvider.CreateScope();
+		var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+		Func<Task> act = () => service.UpdateAsync(id, dto,CancellationToken.None);
+		
 		//Assert
-		act.Should().Throw<EntityNotFoundException>().WithMessage($"Сущность [Событие] с идентификатором [{id}] не найдена.");
-		_eventService.GetAll(new Filters(), 1, 10).Items.Count.Should().Be(totalCount);
+		await act.Should().ThrowAsync<EntityNotFoundException>().WithMessage($"Сущность [Событие] с идентификатором [{id}] не найдена.");
+		var result = await service.GetAllAsync(new Filters(), 1, 10, CancellationToken.None);
+		result.Items.Count.Should().Be(TotalSeats);
 	}
 	
 	/// <summary>
 	/// Проверяет создание события с невалидными даными.
 	/// </summary>
 	[Fact]
-	public void Add_InvalidData_Failed()
+	public async Task Add_InvalidData_Failed()
 	{
 		//Arrange
 		Guid id = Guid.NewGuid();
 		var dto = new EventDto(id, "День семьи", "Семейный праздник на площади", default, default, 10);
 
 		//Act
-		Func<Task> act = () => _eventService.CreateAsync(dto);
+		using var scope = ServiceProvider.CreateScope();
+		var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+		Func<Task> act = () => service.CreateAsync(dto, CancellationToken.None);
 
 		//Assert
-		act.Should().ThrowAsync<ArgumentException>();
-		Action act2 = () => _eventService.GetById(id);
-		act2.Should().Throw<EntityNotFoundException>().WithMessage($"Сущность [Событие] с идентификатором [{id}] не найдена.");
+		await act.Should().ThrowAsync<ArgumentException>();
+		Func<Task> act2 = () => service.GetByIdAsync(id, CancellationToken.None);
+		await act2.Should().ThrowAsync<EntityNotFoundException>().WithMessage($"Сущность [Событие] с идентификатором [{id}] не найдена.");
 	}
 	
 	/// <summary>
@@ -239,34 +312,29 @@ public class EventServiceUnitTests
 	{
 		//Arrange
 		var id = Guid.NewGuid();
-		await CreateEventAsync(id);
 		var dto = new EventDto(id, "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(-1), 10);
 
 		//Act
-		Action act = () => _eventService.Update(id, dto);
+		using var scope = ServiceProvider.CreateScope();
+		var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+		await service.CreateAsync(new EventDto(id, "Новый год", "Праздник наступления Нового Года", _now,
+			_now.AddDays(7), 10), CancellationToken.None);
+		Func<Task> act = () => service.UpdateAsync(id, dto,CancellationToken.None);
 
 		//Assert
-		act.Should().Throw<ArgumentException>().WithMessage("Начало события должно быть раньше его завершения.");
-		var @event = _eventService.GetById(id);
+		await act.Should().ThrowAsync<ArgumentException>().WithMessage("Начало события должно быть раньше его завершения.");
+		var @event = await service.GetByIdAsync(id,CancellationToken.None);
 		@event.Title.Should().Be("Новый год");
 		@event.Description.Should().Be("Праздник наступления Нового Года");
 		@event.StartAt.Should().Be(_now);
 		@event.EndAt.Should().Be(_now.AddDays(7));
 	}
 	
-	private async Task CreateEventAsync(Guid guid)
+	public void Dispose()
 	{
-		await _eventService.CreateAsync(new EventDto(guid, "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(7), 10));
-	}
-	
-	private async Task<int> CreateEvents()
-	{
-		var count = 5;
-		await _eventService.CreateAsync(new EventDto(Guid.NewGuid(), "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(7), 10));
-		await _eventService.CreateAsync(new EventDto(Guid.NewGuid(), "Пасха", "Празднование Пасхи", _now.AddMonths(-1), _now.AddMonths(-1).AddDays(2), 10));
-		await _eventService.CreateAsync(new EventDto(Guid.NewGuid(),"Детская конференция", "Детские праздники и мероприятия", _now.AddHours(-10), _now.AddHours(-9), 10));
-		await _eventService.CreateAsync(new EventDto(Guid.NewGuid(), "8 марта", "Международный женский день", _now.AddDays(-8), _now.AddDays(5), 10));
-		await _eventService.CreateAsync(new EventDto(Guid.NewGuid(), "Весна и март", "Международный день весны", _now.AddDays(-7), _now.AddDays(-6), 10));
-		return count;
+		if (ServiceProvider is IDisposable disposable)
+		{
+			disposable.Dispose();
+		}
 	}
 }

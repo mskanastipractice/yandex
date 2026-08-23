@@ -1,7 +1,7 @@
 using Application.Contracts;
 using Domain.Entities;
 using Domain.Enums;
-using Infrastructure.DAL;
+using Infrastructure.DataAccess;
 
 namespace Infrastructure.Repositories;
 

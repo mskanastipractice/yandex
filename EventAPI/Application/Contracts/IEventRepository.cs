@@ -4,11 +4,15 @@ namespace Application.Contracts;
 
 public interface IEventRepository
 {
-    IReadOnlyCollection<Event> GetAll();
-	
-    Event? Find(Guid eventId);
+    Task<List<Event>> GetAllAsync(CancellationToken cancellationToken);
 
-    void Add(Event @event);
+    ValueTask<Event?> FindAsync(Guid eventId, CancellationToken cancellationToken);
 
-    void Remove(Event @event);
+    Task AddAsync(Event @event);
+
+    Task RemoveAsync(Event @event, CancellationToken cancellationToken);
+
+    Task<bool> Exists(Guid eventId, CancellationToken cancellationToken);
+
+    Task SaveChangesAsync(CancellationToken cancellationToken);
 }

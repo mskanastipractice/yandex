@@ -5,6 +5,10 @@ namespace Domain.Entities;
 
 public class Booking
 {
+	private Booking()
+	{
+	}
+	
 	private Booking(Guid id, Guid eventId, DateTime createdAt)
 	{
 		Id = id;
@@ -18,6 +22,8 @@ public class Booking
 	public BookingStatus Status { get; private set; }
 	public DateTime CreatedAt { get; private set; }
 	public DateTime? ProcessedAt { get; private set; }
+	
+	public Event Event { get; private set; } = null!;
 
 	public static Booking Create(Guid eventId)
 	{

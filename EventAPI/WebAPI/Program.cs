@@ -6,7 +6,7 @@ using WebAPI.Middleware;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApplicationServices();
-builder.Services.AddInfrastructureServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddControllers();
 
 
@@ -21,6 +21,7 @@ builder.Services.AddSwaggerGen(options =>
 
 
 var app = builder.Build();
+app.Services.AddDatabase();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

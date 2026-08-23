@@ -7,57 +7,66 @@ namespace Application.Services;
 
 public class BookingService(IBookingRepository repository, IEventService eventService) : IBookingService
 {
-	private readonly Lock _bookingLock = new();
+	private static readonly SemaphoreSlim AdditionSemaphore = new(1, 1);
 	
-	public Task<BookingDto> GetBookingByIdAsync(Guid bookingId)
+	public async Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken)
 	{
-		var booking = repository.Find(bookingId);
+		var booking = await repository.FindAsync(bookingId, cancellationToken);
 		if (booking == null)
 		{
 			throw new EntityNotFoundException("Бронь", bookingId);
 		}
 
-		return Task.FromResult(BookingDto.ToDto(booking));
+		return BookingDto.ToDto(booking);
 	}
 	
-	public Task<BookingDto> CreateBookingAsync(Guid eventId)
+	public async Task<BookingDto> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken)
 	{
 		Booking booking;
-		lock (_bookingLock)
+		
+		await AdditionSemaphore.WaitAsync(cancellationToken);
+		try
 		{
-			var seatsExist = eventService.TryReserveSeats(eventId);
-			
+			var seatsExist = await @eventService.TryReserveSeatsAsync(eventId, cancellationToken);
+
 			if (!seatsExist)
 			{
 				throw new NoAvailableSeatsException(eventId);
 			}
-
+			
 			booking = Booking.Create(eventId);
-			repository.Add(booking);
+			await repository.AddAsync(booking);
+			await repository.SaveChangesAsync(cancellationToken);
+		}
+		finally
+		{
+			AdditionSemaphore.Release();
 		}
 		
-		return Task.FromResult(BookingDto.ToDto(booking));
+		return BookingDto.ToDto(booking);
 	}
 
-	public void Confirm(Guid bookingId)
+	public async Task ConfirmAsync(Guid bookingId, CancellationToken cancellationToken)
 	{
-		var booking = repository.Find(bookingId);
+		var booking = await repository.FindAsync(bookingId, cancellationToken);
 		if (booking is null)
 		{
 			throw new EntityNotFoundException("Бронь", bookingId);
 		}
 
 		booking.Confirm(DateTime.UtcNow);
+		await repository.SaveChangesAsync(cancellationToken);
 	}
 
-	public void Reject(Guid bookingId)
+	public async Task RejectAsync(Guid bookingId, CancellationToken cancellationToken)
 	{
-		var booking = repository.Find(bookingId);
+		var booking = await repository.FindAsync(bookingId, cancellationToken);
 		if (booking is null)
 		{
 			throw new EntityNotFoundException("Бронь", bookingId);
 		}
 
 		booking.Reject(DateTime.UtcNow);
+		await repository.SaveChangesAsync(cancellationToken);
 	}
 }

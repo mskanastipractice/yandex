@@ -1,34 +1,33 @@
 using Application.Contracts;
 using Domain.Entities;
+using Infrastructure.DAL;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories;
 
-public class EventRepository: IEventRepository
+public class EventRepository(AppDbContext context) : IEventRepository
 {
-    private readonly List<Event> _events = [];
+    public Task<List<Event>> GetAllAsync(CancellationToken cancellationToken)
+        => context.Events.ToListAsync(cancellationToken);
 
-    public IReadOnlyCollection<Event> GetAll()
+    public ValueTask<Event?> FindAsync(Guid eventId, CancellationToken cancellationToken) 
+        => context.Events.FindAsync([eventId], cancellationToken);
+
+    public Task AddAsync(Event @event)
     {
-        return _events;
+        context.Events.Add(@event);
+        return Task.CompletedTask;
     }
 
-    public Event? Find(Guid eventId)
+    public Task RemoveAsync(Event @event, CancellationToken cancellationToken)
     {
-        return _events.Find(e => e.Id == eventId);
+        context.Events.Remove(@event);
+        return Task.CompletedTask;
     }
 
-    public void Add(Event @event)
-    {
-        _events.Add(@event);
-    }
+    public Task<bool> Exists(Guid eventId, CancellationToken cancellationToken) 
+        => context.Events.AnyAsync(e => e.Id == eventId, cancellationToken);
 
-    public void Remove(Event @event)
-    {
-        _events.Remove(@event);
-    }
-
-    public bool Exists(Guid eventId)
-    {
-        return _events.Any(e => e.Id == eventId);
-    }
+    public Task SaveChangesAsync(CancellationToken cancellationToken) 
+        => context.SaveChangesAsync(cancellationToken);
 }

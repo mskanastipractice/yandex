@@ -9,12 +9,13 @@ namespace Application.Services;
 
 public class EventService(IEventRepository repository) : IEventService
 {
-	public PaginatedResultDto<EventInfoDto> GetAll(Filters filters, int page, int pageSize)
+	public async Task<PaginatedResultDto<EventInfoDto>> GetAllAsync(Filters filters, int page, int pageSize, CancellationToken cancellationToken)
 	{
-		IEnumerable<Event> filteredEvents = repository.GetAll()
+		var allEvents  = await repository.GetAllAsync(cancellationToken);
+		IEnumerable<Event> filteredEvents = allEvents
 			.WhereIf(!string.IsNullOrWhiteSpace(filters.Title), x => x.Title.Contains(filters.Title!, StringComparison.OrdinalIgnoreCase))
 			.WhereIf(filters.From.HasValue, x => x.Period.StartAt >= filters.From)
-			.WhereIf(filters.To.HasValue, x => x.Period.EndAt <= filters.To);
+			.WhereIf(filters.To.HasValue, x => x.Period.EndAt <= filters.To).ToArray();
 
 		var totalItems = filteredEvents.Count();
 		var result = filteredEvents.Skip((page - 1) * pageSize).Take(pageSize).Select(EventInfoDto.ToDto).ToArray();
@@ -22,23 +23,25 @@ public class EventService(IEventRepository repository) : IEventService
 		return new PaginatedResultDto<EventInfoDto>(totalItems, page, result.Length, result);
 	}
 
-	public EventInfoDto GetById(Guid eventId)
+	public async Task<EventInfoDto> GetByIdAsync(Guid eventId, CancellationToken cancellationToken)
 	{
-		var eventData = repository.Find(eventId);
+		var eventData = await repository.FindAsync(eventId, cancellationToken);
 		return eventData != null ? EventInfoDto.ToDto(eventData) : throw new EntityNotFoundException("Событие", eventId);
 	}
 
-	public Task<EventInfoDto> CreateAsync(EventDto dto)
+	public async Task<EventInfoDto> CreateAsync(EventDto dto, CancellationToken cancellationToken)
 	{
 		var eventData = Event.Create(dto.Id, dto.Title, dto.Description, EventPeriod.Create(dto.StartAt, dto.EndAt), dto.TotalSeats);
-		repository.Add(eventData);
+		await repository.AddAsync(eventData);
 		
-		return Task.FromResult(EventInfoDto.ToDto(eventData));
+		await repository.SaveChangesAsync(cancellationToken);
+		
+		return EventInfoDto.ToDto(eventData);
 	}
 
-	public EventInfoDto Update(Guid eventId, EventDto dto)
+	public async Task<EventInfoDto> UpdateAsync(Guid eventId, EventDto dto, CancellationToken cancellationToken)
 	{
-		var eventToUpdate = repository.Find(eventId);
+		var eventToUpdate = await repository.FindAsync(eventId, cancellationToken);
 
 		if (eventToUpdate is null)
 		{
@@ -46,24 +49,27 @@ public class EventService(IEventRepository repository) : IEventService
 		}
 
 		eventToUpdate.Update(dto.Title, dto.Description, EventPeriod.Create(dto.StartAt, dto.EndAt));
+		await repository.SaveChangesAsync(cancellationToken);
+		
 		return EventInfoDto.ToDto(eventToUpdate);
 	}
 
-	public void Delete(Guid eventId)
+	public async Task DeleteAsync(Guid eventId, CancellationToken cancellationToken)
 	{
-		var eventToDelete = repository.Find(eventId);
+		var eventToDelete = await repository.FindAsync(eventId, cancellationToken);
 
 		if (eventToDelete is null)
 		{
 			throw new EntityNotFoundException("Событие", eventId);
 		}
 
-		repository.Remove(eventToDelete);
+		await repository.RemoveAsync(eventToDelete, cancellationToken);
+		await repository.SaveChangesAsync(cancellationToken);
 	}
 	
-	public bool TryReserveSeats(Guid eventId, int seats = 1)
+	public async Task<bool> TryReserveSeatsAsync(Guid eventId, CancellationToken cancellationToken, int seats = 1)
 	{
-		var eventToReserve = repository.Find(eventId);
+		var eventToReserve = await repository.FindAsync(eventId, cancellationToken);
 
 		if (eventToReserve is null)
 		{

@@ -1,6 +1,7 @@
 ﻿using Application.Contracts;
 using Domain.Entities;
 using Domain.Entities.ValueObjects;
+using Domain.Enums;
 using FluentAssertions;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -436,5 +437,73 @@ public class EventRepositoryTests(DbFixture fixture) : BaseRepositoryTest(fixtur
         // Assert
         result.TotalItems.Should().Be(0);
         result.Data.Should().BeEmpty();
+    }
+    
+    /// <summary>
+    /// Проверяет, что метод возвращает только бронирования со статусом Pending.
+    /// Бронирования со статусами Confirmed и Rejected в результат не попадают.
+    /// </summary>
+    [Fact]
+    public async Task GetPending_WhenBookingsHaveDifferentStatuses_ShouldReturnOnlyPending()
+    {
+        // Arrange
+        var eventId = Guid.NewGuid();
+
+        await using (var context = Fixture.CreateContext())
+        {
+            context.Events.Add(Event.Create(eventId, "Встреча мастеркласс", "Встреча-мастеркласс по созданию картин", EventPeriod.Create(BaseDate, BaseDate.AddHours(2)), 10));
+            var pendingBooking = Booking.Create(eventId);
+            var confirmedBooking = Booking.Create(eventId);
+            confirmedBooking.Confirm(DateTime.UtcNow);
+            var rejectedBooking = Booking.Create(eventId);
+            rejectedBooking.Reject(DateTime.UtcNow);
+            context.Bookings.AddRange(pendingBooking, confirmedBooking, rejectedBooking);
+            await context.SaveChangesAsync();
+        }
+
+        // Act
+        await using var readContext = Fixture.CreateContext();
+        var repository = new BookingRepository(readContext);
+        var result = await repository.GetPendingAsync(CancellationToken);
+
+        // Assert
+        result.Should().ContainSingle();
+        var booking = result.Single();
+        booking.Status.Should().Be(BookingStatus.Pending);
+    }
+    
+    /// <summary>
+    /// Проверяет, что после подтверждения бронирование перестает возвращаться
+    /// методом GetPendingAsync.
+    /// </summary>
+    [Fact]
+    public async Task GetPending_WhenBookingIsConfirmed_ShouldNotReturnBooking()
+    {
+        // Arrange
+        var eventId = Guid.NewGuid();
+        var bookingId = Guid.NewGuid();
+
+        await using (var context = Fixture.CreateContext())
+        {
+            context.Events.Add(Event.Create(eventId, "Встреча мастеркласс", "Встреча-мастеркласс по созданию картин", EventPeriod.Create(BaseDate, BaseDate.AddHours(2)), 10));
+            var booking = Booking.Create(eventId);
+            context.Bookings.Add(booking);
+            await context.SaveChangesAsync();
+            bookingId = booking.Id;
+        }
+
+        // Act
+        await using var readContext = Fixture.CreateContext();
+        var repository = new BookingRepository(readContext);
+        var pendingBeforeConfirmation = await repository.GetPendingAsync(CancellationToken);
+        pendingBeforeConfirmation.Should().ContainSingle(x => x.Id == bookingId);
+        var bookingToConfirm = await repository.FindAsync(bookingId, CancellationToken);
+        bookingToConfirm.Should().NotBeNull();
+        bookingToConfirm.Confirm(DateTime.UtcNow);
+        await repository.SaveChangesAsync(CancellationToken);
+        var pendingAfterConfirmation = await repository.GetPendingAsync(CancellationToken);
+
+        // Assert
+        pendingAfterConfirmation.Should().NotContain(x => x.Id == bookingId);
     }
 }

@@ -61,7 +61,7 @@ public class EventServiceUnitTests: IDisposable
 	public async Task Create_ValidData_Success()
 	{
 		//Arrange
-		var dto = new EventDto(Guid.NewGuid(), "8 марта", "Международный женский день",
+		var dto = new EventDto("8 марта", "Международный женский день",
 			_now.AddMonths(-5), _now.AddMonths(-5).AddDays(2), 10);
 		EventInfoDto result;
 
@@ -78,7 +78,6 @@ public class EventServiceUnitTests: IDisposable
 		Assert.Equal(result.Description, dto.Description);
 		Assert.Equal(result.StartAt, dto.StartAt);
 		Assert.Equal(result.EndAt, dto.EndAt);
-		Assert.Equal(result.Id, dto.Id);
 	}
 
 	/// <summary>
@@ -109,20 +108,18 @@ public class EventServiceUnitTests: IDisposable
 	public async Task GetById_ValidData_Success()
 	{
 		//Arrange
-		Guid id = Guid.NewGuid();
 		EventInfoDto result;
 
 		//Act
 		using var scope = ServiceProvider.CreateScope();
 		var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-		await service.CreateAsync(new EventDto(id, "Новый год", "Праздник наступления Нового Года", _now,
+		var @event = await service.CreateAsync(new EventDto("Новый год", "Праздник наступления Нового Года", _now,
 			_now.AddDays(7), 10), CancellationToken.None);
-		result = await service.GetByIdAsync(id, CancellationToken.None);
+		result = await service.GetByIdAsync(@event.Id, CancellationToken.None);
 
 		//Assert
 		Assert.NotNull(result);
-		Assert.Equal(id, result.Id);
 	}
 	
 	/// <summary>
@@ -270,7 +267,7 @@ public class EventServiceUnitTests: IDisposable
 	{
 		//Arrange
 		Guid id = Guid.NewGuid();
-		var dto = new EventDto(id, "Новые данные", "Новые данные", _now, _now.AddDays(-1), 10);
+		var dto = new EventDto( "Новые данные", "Новые данные", _now, _now.AddDays(-1), 10);
 
 		//Act
 		using var scope = ServiceProvider.CreateScope();
@@ -291,7 +288,7 @@ public class EventServiceUnitTests: IDisposable
 	{
 		//Arrange
 		Guid id = Guid.NewGuid();
-		var dto = new EventDto(id, "День семьи", "Семейный праздник на площади", default, default, 10);
+		var dto = new EventDto("День семьи", "Семейный праздник на площади", default, default, 10);
 
 		//Act
 		using var scope = ServiceProvider.CreateScope();
@@ -311,19 +308,18 @@ public class EventServiceUnitTests: IDisposable
 	public async Task Update_InvalidData_Failed()
 	{
 		//Arrange
-		var id = Guid.NewGuid();
-		var dto = new EventDto(id, "Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(-1), 10);
+		var dto = new EventDto("Новый год", "Праздник наступления Нового Года", _now, _now.AddDays(-1), 10);
 
 		//Act
 		using var scope = ServiceProvider.CreateScope();
 		var service = scope.ServiceProvider.GetRequiredService<IEventService>();
-		await service.CreateAsync(new EventDto(id, "Новый год", "Праздник наступления Нового Года", _now,
+		var result = await service.CreateAsync(new EventDto( "Новый год", "Праздник наступления Нового Года", _now,
 			_now.AddDays(7), 10), CancellationToken.None);
-		Func<Task> act = () => service.UpdateAsync(id, dto,CancellationToken.None);
+		Func<Task> act = () => service.UpdateAsync(result.Id, dto,CancellationToken.None);
 
 		//Assert
 		await act.Should().ThrowAsync<ArgumentException>().WithMessage("Начало события должно быть раньше его завершения.");
-		var @event = await service.GetByIdAsync(id,CancellationToken.None);
+		var @event = await service.GetByIdAsync(result.Id,CancellationToken.None);
 		@event.Title.Should().Be("Новый год");
 		@event.Description.Should().Be("Праздник наступления Нового Года");
 		@event.StartAt.Should().Be(_now);

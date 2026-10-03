@@ -13,7 +13,6 @@ namespace WebAPI.Models.Event;
 /// <param name="StartAt">Дата начала.</param>
 /// <param name="EndAt">Дата окончания.</param>
 public record CreateEventRequest(
-	[Required] Guid Id,
 	[Required(ErrorMessage = "Наименование события обязательно для заполнения.")]
 	string Title,
 	string? Description,
@@ -28,6 +27,6 @@ public record CreateEventRequest(
 {
 	public EventDto ToDto()
 	{
-		return new EventDto(Id, Title, Description, StartAt, EndAt, TotalSeats);
+		return new EventDto(Title, Description, StartAt, EndAt, TotalSeats);
 	}
 }

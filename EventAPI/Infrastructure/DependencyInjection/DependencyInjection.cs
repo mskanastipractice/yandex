@@ -1,6 +1,6 @@
 using Application.Contracts;
 using Infrastructure.BackgroundServices;
-using Infrastructure.DAL;
+using Infrastructure.DataAccess;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +26,6 @@ public static class DependencyInjection
     {
         using var scope = serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Database.EnsureCreated();
+        db.Database.Migrate();
     }
 }

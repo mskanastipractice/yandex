@@ -11,16 +11,9 @@ public class EventService(IEventRepository repository) : IEventService
 {
 	public async Task<PaginatedResultDto<EventInfoDto>> GetAllAsync(Filters filters, int page, int pageSize, CancellationToken cancellationToken)
 	{
-		var allEvents  = await repository.GetAllAsync(cancellationToken);
-		IEnumerable<Event> filteredEvents = allEvents
-			.WhereIf(!string.IsNullOrWhiteSpace(filters.Title), x => x.Title.Contains(filters.Title!, StringComparison.OrdinalIgnoreCase))
-			.WhereIf(filters.From.HasValue, x => x.Period.StartAt >= filters.From)
-			.WhereIf(filters.To.HasValue, x => x.Period.EndAt <= filters.To).ToArray();
+		var result = await repository.GetFiltered(page, pageSize, filters, cancellationToken);
 
-		var totalItems = filteredEvents.Count();
-		var result = filteredEvents.Skip((page - 1) * pageSize).Take(pageSize).Select(EventInfoDto.ToDto).ToArray();
-
-		return new PaginatedResultDto<EventInfoDto>(totalItems, page, result.Length, result);
+		return new PaginatedResultDto<EventInfoDto>(result.TotalItems, page, result.Data.Count, result.Data.Select(EventInfoDto.ToDto).ToArray());
 	}
 
 	public async Task<EventInfoDto> GetByIdAsync(Guid eventId, CancellationToken cancellationToken)

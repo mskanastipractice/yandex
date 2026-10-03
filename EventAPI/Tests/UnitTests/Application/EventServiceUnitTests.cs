@@ -5,7 +5,7 @@ using Application.Services;
 using Domain.Entities;
 using Domain.Entities.ValueObjects;
 using FluentAssertions;
-using Infrastructure.DAL;
+using Infrastructure.DataAccess;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

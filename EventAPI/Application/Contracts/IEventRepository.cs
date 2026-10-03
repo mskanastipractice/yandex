@@ -4,8 +4,9 @@ namespace Application.Contracts;
 
 public interface IEventRepository
 {
-    Task<List<Event>> GetAllAsync(CancellationToken cancellationToken);
-
+    Task<FilteredResult<Event>> GetFiltered(int page, int pageSize, Filters filters,
+        CancellationToken cancellationToken);
+    
     ValueTask<Event?> FindAsync(Guid eventId, CancellationToken cancellationToken);
 
     Task AddAsync(Event @event);

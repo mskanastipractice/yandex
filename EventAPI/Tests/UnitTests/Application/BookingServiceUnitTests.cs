@@ -6,7 +6,7 @@ using Domain.Entities;
 using Domain.Entities.ValueObjects;
 using Domain.Enums;
 using FluentAssertions;
-using Infrastructure.DAL;
+using Infrastructure.DataAccess;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

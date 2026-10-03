@@ -1,4 +1,4 @@
-﻿using Application.Exceptions;
+﻿using Domain.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebAPI.Middleware;

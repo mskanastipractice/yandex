@@ -1,9 +1,9 @@
 ﻿using Application.Contracts;
 using Application.Contracts.DTOs;
-using Application.Exceptions;
 using Application.Services;
 using Domain.Entities;
 using Domain.Entities.ValueObjects;
+using Domain.Exceptions;
 using FluentAssertions;
 using Infrastructure.DataAccess;
 using Infrastructure.Repositories;

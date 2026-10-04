@@ -194,45 +194,6 @@ public class EventRepositoryTests(DbFixture fixture) : BaseRepositoryTest(fixtur
     }
 
     /// <summary>
-    /// Проверяет, что удаление события, для которого существует бронирование,
-    /// завершается исключением <see cref="DbUpdateException"/>.
-    /// </summary>
-    [Fact]
-    public async Task Delete_WhenBookingExists_ShouldThrowDbUpdateException()
-    {
-        // Arrange
-        await using (var context = Fixture.CreateContext())
-        {
-            context.Events.Add(CreateEvent());
-            context.Bookings.Add(Booking.Create(EventId));
-
-            await context.SaveChangesAsync();
-        }
-
-        // Act
-        await using var deleteContext = Fixture.CreateContext();
-
-        var repository = new EventRepository(deleteContext);
-
-        var @event = await repository.FindAsync(
-            EventId,
-            CancellationToken);
-
-        @event.Should().NotBeNull();
-
-        await repository.RemoveAsync(
-            @event!,
-            CancellationToken);
-
-        // Assert
-        Func<Task> act = () =>
-            repository.SaveChangesAsync(CancellationToken);
-
-        await act.Should()
-            .ThrowAsync<DbUpdateException>();
-    }
-
-    /// <summary>
     /// Проверяет, что для существующего события метод возвращает <c>true</c>.
     /// </summary>
     [Fact]

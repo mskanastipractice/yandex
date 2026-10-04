@@ -1,4 +1,4 @@
-﻿namespace Application.Exceptions;
+﻿namespace Domain.Exceptions;
 
 /// <summary>
 /// Исключение, возникающее при попытке доступа к несуществующей сущности.

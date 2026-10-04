@@ -39,7 +39,11 @@ public class EventsController(IEventService eventService, IBookingService bookin
     [HttpGet("{id:guid}")]
     [ProducesResponseType<EventResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetById([FromRoute] Guid id, CancellationToken cancellationToken) => Ok(eventService.GetByIdAsync(id, cancellationToken));
+    public async Task<IActionResult> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var result = await eventService.GetByIdAsync(id, cancellationToken);
+        return Ok(result);
+    }
 
     /// <summary>
     /// Создать новое событие
@@ -71,7 +75,7 @@ public class EventsController(IEventService eventService, IBookingService bookin
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] EventRequest request, CancellationToken cancellationToken) 
-        => Ok(await eventService.UpdateAsync(id, request.ToDto(id), cancellationToken));
+        => Ok(await eventService.UpdateAsync(id, request.ToDto(), cancellationToken));
 
     /// <summary>
     /// Удалить событие

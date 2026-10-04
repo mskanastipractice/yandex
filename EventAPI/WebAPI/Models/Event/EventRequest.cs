@@ -26,10 +26,9 @@ public record EventRequest(
 	/// <summary>
 	/// Преобразует запрос в DTO события для передачи в сервисный слой.
 	/// </summary>
-	/// <param name="eventId">Уникальный идентификатор события.</param>
 	/// <returns>Объект EventDto, готовый для передачи в бизнес-логику.</returns>
-	public EventDto ToDto(Guid eventId)
+	public EventDto ToDto()
 	{
-		return new EventDto(eventId, Title, Description, StartAt, EndAt, TotalSeats);
+		return new EventDto(Title, Description, StartAt, EndAt, TotalSeats);
 	}
 }

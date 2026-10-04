@@ -1,9 +1,9 @@
 ﻿using Application.Contracts;
 using Application.Contracts.DTOs;
-using Application.Exceptions;
 using Application.Extensions;
 using Domain.Entities;
 using Domain.Entities.ValueObjects;
+using Domain.Exceptions;
 
 namespace Application.Services;
 
@@ -24,7 +24,7 @@ public class EventService(IEventRepository repository) : IEventService
 
 	public async Task<EventInfoDto> CreateAsync(EventDto dto, CancellationToken cancellationToken)
 	{
-		var eventData = Event.Create(dto.Id, dto.Title, dto.Description, EventPeriod.Create(dto.StartAt, dto.EndAt), dto.TotalSeats);
+		var eventData = Event.Create(Guid.NewGuid(), dto.Title, dto.Description, EventPeriod.Create(dto.StartAt, dto.EndAt), dto.TotalSeats);
 		await repository.AddAsync(eventData);
 		
 		await repository.SaveChangesAsync(cancellationToken);

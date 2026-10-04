@@ -2,6 +2,7 @@ using Application.Contracts;
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.DataAccess;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories;
 
@@ -24,4 +25,8 @@ public class BookingRepository(AppDbContext context) : IBookingRepository
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)
         => context.SaveChangesAsync(cancellationToken);
+
+    public async Task<int> CountPendingByUser(Guid userId, CancellationToken cancellationToken) =>
+        await context.Bookings
+            .CountAsync(x => x.Status == BookingStatus.Pending && x.UserId == userId, cancellationToken);
 }

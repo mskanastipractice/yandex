@@ -1,15 +1,19 @@
 ﻿using Application.Contracts;
 using Application.Contracts.DTOs;
+using Application.Exceptions.Exceptions;
 using Application.Services;
 using Domain.Entities;
 using Domain.Entities.ValueObjects;
 using Domain.Enums;
 using Domain.Exceptions;
 using FluentAssertions;
+using Infrastructure.Auth;
 using Infrastructure.DataAccess;
 using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
+using Moq;
 using NUnit.Framework;
 using Xunit;
 
@@ -19,20 +23,50 @@ public class BookingServiceUnitTests: IDisposable
 {
 	private readonly Guid _eventId1 = Guid.NewGuid();
 	private readonly Guid _eventId2 = Guid.NewGuid();
+	private readonly Guid _eventId3 = Guid.NewGuid();
+	protected readonly Guid UserId = Guid.NewGuid();
+	protected const string UserLogin = "test1";
+	protected const string UserPassword = "test1";
 	private const int TotalSeats = 10;
 	
 	protected readonly IServiceProvider ServiceProvider;
+	
+	protected readonly Mock<IJwtProvider> JwtProviderMock = new();
+	protected readonly Mock<ICurrentUserContext> UserContextMock = new();
+	protected readonly Mock<IPasswordHasher> PasswordHasherMock = new();
+	protected readonly Mock<IUserRepository> UserRepositoryMock = new();
 
 	public BookingServiceUnitTests()
 	{
+		var user = User.Create(UserLogin, "random_string", UserRole.User);
 		var services = new ServiceCollection();
 		services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase("TestDb"));
+		services.AddSingleton<TimeProvider>(new FakeTimeProvider(DateTimeOffset.UtcNow));
+		services.AddSingleton(UserContextMock.Object);
 		services.AddScoped<IEventRepository, EventRepository>();
 		services.AddScoped<IBookingRepository, BookingRepository>();
 		services.AddScoped<IEventService, EventService>();
 		services.AddScoped<IBookingService, BookingService>();
 		ServiceProvider = services.BuildServiceProvider();
 
+		SetCurrentUser(UserId);
+
+		JwtProviderMock.Setup(provider => provider.GenerateToken(user))
+			.Returns("jwt_token");
+
+		PasswordHasherMock.Setup(hasher => hasher.Hash(UserPassword))
+			.Returns("random_password_hash");
+		PasswordHasherMock.Setup(hasher => hasher.Verify(UserPassword, It.IsAny<string>()))
+			.Returns(true);
+
+		UserRepositoryMock.Setup(repo => repo.FindByLoginAsync(UserLogin, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(user);
+		UserRepositoryMock.Setup(repo => repo.ExistsByLoginAsync(UserLogin, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+		UserRepositoryMock.Setup(repo => repo.AddAsync(user));
+		UserRepositoryMock.Setup(repo => repo.SaveChangesAsync(It.IsAny<CancellationToken>()))
+			.Returns(Task.CompletedTask);
+		
 		SeedDatabase();
 	}
 	
@@ -46,7 +80,9 @@ public class BookingServiceUnitTests: IDisposable
 			Event.Create(_eventId1, "Новый год", "Праздник наступления Нового Года",
 				EventPeriod.Create(now, now.AddDays(7)), 10),
 			Event.Create(_eventId2, "Пасха", "Празднование Пасхи",
-				EventPeriod.Create(now.AddMonths(-1), now.AddMonths(-1).AddDays(2)), 10));
+				EventPeriod.Create(now.AddMonths(-1), now.AddMonths(-1).AddDays(2)), 10),
+			Event.Create(_eventId3, "Праздник Осени", "Празднуем осень",
+				EventPeriod.Create(now.AddMonths(10), now.AddMonths(12).AddDays(2)), 100));
 
 		context.SaveChanges();
 	}
@@ -342,11 +378,99 @@ public class BookingServiceUnitTests: IDisposable
 		}
 	}
 	
+	/// <summary>
+	/// Проверяет, что бронирование прошедшего события невозможно.
+	/// </summary>
+	[Fact]
+	public async Task Add_ForPastEvent_Failed()
+	{
+		// Arrange
+		var pastEventId = _eventId2;
+
+		using var scope = ServiceProvider.CreateScope();
+		var service = scope.ServiceProvider.GetRequiredService<IBookingService>();
+
+		// Act
+		Func<Task> act = () => service.CreateBookingAsync(pastEventId, CancellationToken.None);
+
+		// Assert
+		await act.Should()
+			.ThrowAsync<PastEventBookingException>();
+	}
+	
+	/// <summary>
+	/// Проверяет, что при достижении лимита активных броней новая бронь не создаётся.
+	/// </summary>
+	[Fact]
+	public async Task Add_WhenActiveBookingsLimitReached_Failed()
+	{
+		// Arrange
+		const int maxActiveBookings = 20; 
+		var eventId = _eventId3;
+
+		using var scope = ServiceProvider.CreateScope();
+		var service = scope.ServiceProvider.GetRequiredService<IBookingService>();
+
+		// Act 
+		for (var i = 0; i < maxActiveBookings; i++)
+		{
+			await service.CreateBookingAsync(eventId, CancellationToken.None);
+		}
+		Func<Task> act = () => service.CreateBookingAsync(eventId, CancellationToken.None);
+
+		// Assert
+		await act.Should()
+			.ThrowAsync<BookingLimitReachingException>();
+	}
+	
+	/// <summary>
+	/// Проверяет, что лимит активных броней считается отдельно для каждого пользователя.
+	/// </summary>
+	[Fact]
+	public async Task Add_ActiveBookingsLimit_IsPerUser()
+	{
+		// Arrange
+		const int bookingLimit = 20; 
+		var firstUserId = UserId;
+		var secondUserId = Guid.NewGuid();
+		var eventId = _eventId3; 
+
+		// Act & Assert
+		using (var scope = ServiceProvider.CreateScope())
+		{
+			SetCurrentUser(firstUserId);
+			var service = scope.ServiceProvider.GetRequiredService<IBookingService>();
+
+			for (var i = 0; i < bookingLimit; i++)
+			{
+				await service.CreateBookingAsync(eventId, CancellationToken.None);
+			}
+
+			Func<Task> actFirst = () => service.CreateBookingAsync(eventId, CancellationToken.None);
+			await actFirst.Should().ThrowAsync<BookingLimitReachingException>();
+		}
+
+		using (var scope = ServiceProvider.CreateScope())
+		{
+			SetCurrentUser(secondUserId);
+			var service = scope.ServiceProvider.GetRequiredService<IBookingService>();
+
+			Func<Task> actSecond = () => service.CreateBookingAsync(eventId, CancellationToken.None);
+			await actSecond.Should().NotThrowAsync();
+		}
+	}
+	
 	public void Dispose()
 	{
 		if (ServiceProvider is IDisposable disposable)
 		{
 			disposable.Dispose();
 		}
+	}
+	
+	private void SetCurrentUser(Guid userId)
+	{
+		UserContextMock.Setup(x => x.UserId).Returns(userId);
+		UserContextMock.Setup(x => x.IsAuthenticated).Returns(true);
 	}
 }

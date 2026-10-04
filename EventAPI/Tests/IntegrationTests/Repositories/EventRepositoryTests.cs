@@ -409,14 +409,18 @@ public class EventRepositoryTests(DbFixture fixture) : BaseRepositoryTest(fixtur
     {
         // Arrange
         var eventId = Guid.NewGuid();
+        var user =  User.Create($"UserLogin_{Guid.NewGuid():N}", "hash", UserRole.User);
 
         await using (var context = Fixture.CreateContext())
         {
+            context.Users.Add(user);              
+            await context.SaveChangesAsync(); 
+            
             context.Events.Add(Event.Create(eventId, "Встреча мастеркласс", "Встреча-мастеркласс по созданию картин", EventPeriod.Create(BaseDate, BaseDate.AddHours(2)), 10));
-            var pendingBooking = Booking.Create(eventId);
-            var confirmedBooking = Booking.Create(eventId);
+            var pendingBooking = Booking.Create(eventId,user.Id);
+            var confirmedBooking = Booking.Create(eventId,user.Id);
             confirmedBooking.Confirm(DateTime.UtcNow);
-            var rejectedBooking = Booking.Create(eventId);
+            var rejectedBooking = Booking.Create(eventId,user.Id);
             rejectedBooking.Reject(DateTime.UtcNow);
             context.Bookings.AddRange(pendingBooking, confirmedBooking, rejectedBooking);
             await context.SaveChangesAsync();
@@ -443,11 +447,15 @@ public class EventRepositoryTests(DbFixture fixture) : BaseRepositoryTest(fixtur
         // Arrange
         var eventId = Guid.NewGuid();
         var bookingId = Guid.NewGuid();
+        var user = User.Create($"UserLogin_{Guid.NewGuid():N}", "hash", UserRole.User);
 
         await using (var context = Fixture.CreateContext())
         {
+            context.Users.Add(user);              
+            await context.SaveChangesAsync(); 
+            
             context.Events.Add(Event.Create(eventId, "Встреча мастеркласс", "Встреча-мастеркласс по созданию картин", EventPeriod.Create(BaseDate, BaseDate.AddHours(2)), 10));
-            var booking = Booking.Create(eventId);
+            var booking = Booking.Create(eventId,user.Id);
             context.Bookings.Add(booking);
             await context.SaveChangesAsync();
             bookingId = booking.Id;

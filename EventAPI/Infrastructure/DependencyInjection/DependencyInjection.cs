@@ -1,7 +1,9 @@
 using Application.Contracts;
+using Infrastructure.Auth;
 using Infrastructure.BackgroundServices;
 using Infrastructure.DataAccess;
 using Infrastructure.Repositories;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,9 +19,14 @@ public static class DependencyInjection
 		
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ICurrentUserContext, CurrentUserContext>();
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddHostedService<BookingBackgroundService>();
+        
+        services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<IJwtProvider, JwtProvider>();
     }
 
     public static void AddDatabase(this IServiceProvider serviceProvider)

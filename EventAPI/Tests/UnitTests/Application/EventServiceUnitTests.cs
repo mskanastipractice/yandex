@@ -1,5 +1,6 @@
 ﻿using Application.Contracts;
 using Application.Contracts.DTOs;
+using Application.Exceptions.Exceptions;
 using Application.Services;
 using Domain.Entities;
 using Domain.Entities.ValueObjects;

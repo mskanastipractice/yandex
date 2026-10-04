@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Application.Contracts.DTOs;
+using Application.Exceptions.Exceptions;
 using Domain.Exceptions;
 
 namespace Application.Contracts;
@@ -44,4 +45,14 @@ public interface IBookingService
 	/// <exception cref="EntityNotFoundException">Выбрасывается, если бронирование с указанным ID не найдено.</exception>
 	/// <exception cref="InvalidOperationException">Выбрасывается, если бронирование уже подтверждено или отклонено.</exception>
 	Task RejectAsync(Guid bookingId, CancellationToken cancellationToken);
+	
+	/// <summary>
+	/// Отменяет бронирование по его идентификатору.
+	/// </summary>
+	/// <param name="bookingId">Идентификатор отменяемого бронирования.</param>
+	/// <param name="cancellationToken">Токен отмены</param>
+	/// <exception cref="EntityNotFoundException">Выбрасывается, если бронирование с указанным ID не найдено.</exception>
+	/// <exception cref="AccessDeniedException">Выбрасывается, если недостаточно прав на действие.</exception>
+	/// <exception cref="PastEventCancellationException">Выбрасывается при попытке отменить прошедшее событие.</exception>
+	Task CancelBookingAsync(Guid bookingId, CancellationToken cancellationToken);
 }

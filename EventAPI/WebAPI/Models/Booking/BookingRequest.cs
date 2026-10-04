@@ -6,6 +6,5 @@ namespace WebAPI.Models.Booking;
 /// Представляет данные для создания брони.
 /// </summary>
 /// <param name="EventId">Идентификатор события.</param>
-public record BookingRequest(
-    [Required(ErrorMessage = "Идентификатор события для брони.")]
-    Guid EventId);
+/// <param name="UserId">Идентификатор пользователя.</param>
+public record BookingRequest([Required(ErrorMessage = "Идентификатор события для брони.")] Guid EventId, Guid UserId);

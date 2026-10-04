@@ -1,5 +1,5 @@
 using Application.Contracts.DTOs;
-using Domain.Exceptions;
+using Application.Exceptions.Exceptions;
 
 namespace Application.Contracts;
 

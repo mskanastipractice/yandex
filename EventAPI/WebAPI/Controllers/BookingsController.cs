@@ -34,11 +34,11 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
 	/// <param name="id">Идентификатор брони.</param>
 	/// <param name="cancellationToken">Токен отмены.</param>
 	[HttpDelete("{id:guid}")]
-	[ProducesResponseType(StatusCodes.Status200OK)]
+	[ProducesResponseType(StatusCodes.Status204NoContent)]
 	[ProducesResponseType(StatusCodes.Status404NotFound)]
 	public async Task<ActionResult<BookingResponse>> Cancel([FromRoute] Guid id, CancellationToken cancellationToken)
 	{
 		await bookingService.CancelBookingAsync(id, cancellationToken);
-		return Ok();
+		return NoContent();
 	}
 }

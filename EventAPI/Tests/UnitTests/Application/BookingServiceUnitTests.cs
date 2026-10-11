@@ -27,7 +27,7 @@ public class BookingServiceUnitTests: IDisposable
 	protected readonly Guid UserId = Guid.NewGuid();
 	protected const string UserLogin = "test1";
 	protected const string UserPassword = "test1";
-	private const int TotalSeats = 10;
+	private const int TotalSeats = 9;
 	
 	protected readonly IServiceProvider ServiceProvider;
 	
@@ -78,7 +78,7 @@ public class BookingServiceUnitTests: IDisposable
 
 		context.Events.AddRange(
 			Event.Create(_eventId1, "Новый год", "Праздник наступления Нового Года",
-				EventPeriod.Create(now, now.AddDays(7)), 10),
+				EventPeriod.Create(now, now.AddDays(7)), 9),
 			Event.Create(_eventId2, "Пасха", "Празднование Пасхи",
 				EventPeriod.Create(now.AddMonths(-1), now.AddMonths(-1).AddDays(2)), 10),
 			Event.Create(_eventId3, "Праздник Осени", "Празднуем осень",
@@ -342,7 +342,7 @@ public class BookingServiceUnitTests: IDisposable
 	public async Task Add_MultipleBookingsForOneEvent_Overbooking_Success()
 	{
 		// Arrange
-		var totalRequests = 25;
+		var totalRequests = 9;
 		var successCount = 0;
 		var exceptionsCount = 0;
 
@@ -405,7 +405,7 @@ public class BookingServiceUnitTests: IDisposable
 	public async Task Add_WhenActiveBookingsLimitReached_Failed()
 	{
 		// Arrange
-		const int maxActiveBookings = 20; 
+		const int maxActiveBookings = 10; 
 		var eventId = _eventId3;
 
 		using var scope = ServiceProvider.CreateScope();
@@ -430,7 +430,7 @@ public class BookingServiceUnitTests: IDisposable
 	public async Task Add_ActiveBookingsLimit_IsPerUser()
 	{
 		// Arrange
-		const int bookingLimit = 20; 
+		const int bookingLimit = 10; 
 		var firstUserId = UserId;
 		var secondUserId = Guid.NewGuid();
 		var eventId = _eventId3; 

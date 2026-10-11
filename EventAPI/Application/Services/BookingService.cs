@@ -13,7 +13,7 @@ public class BookingService(
 	IEventService eventService) : IBookingService
 {
 	private static readonly SemaphoreSlim AdditionSemaphore = new(1, 1);
-	private const int BookingLimitPerUser = 20;
+	private const int BookingLimitPerUser = 10;
 	
 	public async Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken)
 	{

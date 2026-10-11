@@ -76,11 +76,15 @@ public class EventsController(IEventService eventService, IBookingService bookin
     /// <response code="404">Событие с указанным ID не найдено</response>
     [Authorize(Roles = "Admin")]
     [HttpPut("{id:guid}")]
-    [ProducesResponseType<EventResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<EventResponse>(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(Guid id, [FromBody] EventRequest request, CancellationToken cancellationToken) 
-        => Ok(await eventService.UpdateAsync(id, request.ToDto(), cancellationToken));
+    public async Task<IActionResult> Update(Guid id, [FromBody] EventRequest request,
+        CancellationToken cancellationToken)
+    {
+        await eventService.UpdateAsync(id, request.ToDto(), cancellationToken);
+        return NoContent();
+    }
 
     /// <summary>
     /// Удалить событие

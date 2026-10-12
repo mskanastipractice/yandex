@@ -37,6 +37,11 @@ public class Booking
 	
 	public void Confirm(DateTime processedAt)
 	{
+		if (Status != Pending)
+		{
+			throw new BookingMustBeInPendingStatusException("Нельзя изменить бронирование. Бронирование отменено.");
+		}
+		
 		Status = Confirmed;
 		ProcessedAt = processedAt;
 	}
@@ -51,7 +56,12 @@ public class Booking
 	{
 		if (Status != Pending)
 		{
-			throw new BookingMustBeInPendingStatusException("Нельзя изменить бронирование. Бронирование отменено.");
+			throw new BookingMustBeInPendingStatusException("Нельзя изменить бронирование. Бронирование уже отменено.");
+		}
+		
+		if (Status == Rejected)
+		{
+			throw new BookingMustBeInPendingStatusException("Нельзя отменить отклонённое бронирование.");
 		}
 
 		Status = Cancelled;

@@ -10,6 +10,7 @@ public class BookingService(
 	ICurrentUserContext userContext, 
 	TimeProvider timeProvider, 
 	IBookingRepository repository, 
+	IEventRepository eventRepository, 
 	IEventService eventService) : IBookingService
 {
 	private static readonly SemaphoreSlim AdditionSemaphore = new(1, 1);
@@ -42,7 +43,7 @@ public class BookingService(
 
 			if (bookingsCount >= BookingLimitPerUser)
 			{
-				throw new BookingLimitReachingException($"Достигнут лимит [{BookingLimitPerUser}] бронирования у события.");
+				throw new BookingLimitReachingException($"Достигнут лимит [{BookingLimitPerUser}] бронирования у пользователя на это событие.");
 			}
 			
 			var @event = await eventService.GetByIdAsync(eventId, cancellationToken);
@@ -122,6 +123,8 @@ public class BookingService(
 		}
 
 		booking.Cancel(timeProvider.GetUtcNow().UtcDateTime);
+		var eventEntity = await eventRepository.FindAsync(booking.EventId, cancellationToken);
+		eventEntity!.ReleaseSeats();
 
 		await repository.SaveChangesAsync(cancellationToken);
 	}

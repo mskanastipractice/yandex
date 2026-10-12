@@ -460,6 +460,47 @@ public class BookingServiceUnitTests: IDisposable
 		}
 	}
 	
+	/// <summary>
+	/// Проверяет, что отмена работает корректно во время обработки.
+	/// </summary>
+	[Fact]
+	public async Task BackgroundConfirm_AfterCancel_DoesNotOverwriteCancelledStatus()
+	{
+		// Arrange
+		var booking = Booking.Create(_eventId1, UserId);
+		using (var scope = ServiceProvider.CreateScope())
+		{
+			var repo = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+			await repo.AddAsync(booking);
+			await repo.SaveChangesAsync(CancellationToken.None);
+		}
+
+		// Act
+		using (var scope = ServiceProvider.CreateScope())
+		{
+			var service = scope.ServiceProvider.GetRequiredService<IBookingService>();
+			await service.CancelBookingAsync(booking.Id, CancellationToken.None);
+		}
+		using (var scope = ServiceProvider.CreateScope())
+		{
+			var repo = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+			var loaded = await repo.FindAsync(booking.Id, CancellationToken.None);
+			loaded!.Status.Should().Be(BookingStatus.Cancelled);
+
+			// Confirm должен бросить или быть no-op — но точно НЕ перевести в Confirmed
+			Action act = () => loaded.Confirm(DateTime.UtcNow);
+			act.Should().Throw<BookingMustBeInPendingStatusException>();
+		}
+
+		// Assert
+		using (var scope = ServiceProvider.CreateScope())
+		{
+			var repo = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+			var final = await repo.FindAsync(booking.Id, CancellationToken.None);
+			final!.Status.Should().Be(BookingStatus.Cancelled);
+		}
+	}
+	
 	public void Dispose()
 	{
 		if (ServiceProvider is IDisposable disposable)

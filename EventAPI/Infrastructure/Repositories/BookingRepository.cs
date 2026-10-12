@@ -28,5 +28,5 @@ public class BookingRepository(AppDbContext context) : IBookingRepository
 
     public async Task<int> CountPendingByUser(Guid userId, CancellationToken cancellationToken) =>
         await context.Bookings
-            .CountAsync(x => x.Status == BookingStatus.Pending && x.UserId == userId, cancellationToken);
+            .CountAsync(x => (x.Status == BookingStatus.Pending || x.Status == BookingStatus.Confirmed) && x.UserId == userId, cancellationToken);
 }

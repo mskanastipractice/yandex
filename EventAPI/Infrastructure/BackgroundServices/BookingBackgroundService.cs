@@ -1,5 +1,6 @@
 ﻿using Application.Contracts;
 using Domain.Entities;
+using Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -52,9 +53,12 @@ internal class BookingBackgroundService(
 			else
 			{
 				await Task.Delay(_processBookingDelayTimeSpan, cancellationToken);
-				booking.Confirm(DateTime.UtcNow);
-				await bookingStore.SaveChangesAsync(cancellationToken);
-				logger.LogInformation("Бронирование с идентификатором {BookingId} обработано успешно.", booking.Id);
+				if (booking.Status == BookingStatus.Pending)
+				{
+					booking.Confirm(DateTime.UtcNow);
+					await bookingStore.SaveChangesAsync(cancellationToken);
+					logger.LogInformation("Бронирование с идентификатором {BookingId} обработано успешно.", booking.Id);
+				}
 			}
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -11,4 +11,6 @@ public interface IBookingRepository
 	Task AddAsync(Booking booking);
 	
 	Task SaveChangesAsync(CancellationToken cancellationToken);
+	
+	Task<int> CountPendingByUser(Guid userId, CancellationToken cancellationToken);
 }

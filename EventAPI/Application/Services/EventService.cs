@@ -1,9 +1,8 @@
 ﻿using Application.Contracts;
 using Application.Contracts.DTOs;
-using Application.Extensions;
+using Application.Exceptions.Exceptions;
 using Domain.Entities;
 using Domain.Entities.ValueObjects;
-using Domain.Exceptions;
 
 namespace Application.Services;
 

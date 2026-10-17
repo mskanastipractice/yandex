@@ -22,6 +22,7 @@ public record BookingResponse(Guid BookingId, Guid EventId, BookingStatus Status
             Domain.Enums.BookingStatus.Pending => BookingStatus.Pending,
             Domain.Enums.BookingStatus.Confirmed => BookingStatus.Confirmed,
             Domain.Enums.BookingStatus.Rejected => BookingStatus.Rejected,
+            Domain.Enums.BookingStatus.Cancelled => BookingStatus.Cancelled,
             _ => throw new ArgumentException($"Не найден маппинг для {value}")
         };
     }

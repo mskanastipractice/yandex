@@ -1,4 +1,5 @@
 using Application.Contracts;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebAPI.Mappings;
 using WebAPI.Models;
@@ -11,6 +12,7 @@ namespace WebAPI.Controllers;
 /// API для управления событиями
 /// </summary>
 /// <param name="eventService">Сервис для работы с событиями</param>
+[Authorize]
 [ApiController]
 [Route("[controller]")]
 public class EventsController(IEventService eventService, IBookingService bookingService) : ControllerBase
@@ -49,9 +51,11 @@ public class EventsController(IEventService eventService, IBookingService bookin
     /// Создать новое событие
     /// </summary>
     /// <param name="request">Данные для создания события</param>
+    /// <param name="cancellationToken">Токен отмены</param>
     /// <returns>Созданное событие с присвоенным ID</returns>
     /// <response code="201">Событие успешно создано</response>
     /// <response code="400">Некорректные данные запроса (например, дата окончания раньше даты начала)</response>
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType<EventResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -70,12 +74,17 @@ public class EventsController(IEventService eventService, IBookingService bookin
     /// <response code="204">Событие успешно обновлено (тело ответа пустое)</response>
     /// <response code="400">Некорректные данные запроса</response>
     /// <response code="404">Событие с указанным ID не найдено</response>
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:guid}")]
-    [ProducesResponseType<EventResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<EventResponse>(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(Guid id, [FromBody] EventRequest request, CancellationToken cancellationToken) 
-        => Ok(await eventService.UpdateAsync(id, request.ToDto(), cancellationToken));
+    public async Task<IActionResult> Update(Guid id, [FromBody] EventRequest request,
+        CancellationToken cancellationToken)
+    {
+        await eventService.UpdateAsync(id, request.ToDto(), cancellationToken);
+        return NoContent();
+    }
 
     /// <summary>
     /// Удалить событие
@@ -84,6 +93,7 @@ public class EventsController(IEventService eventService, IBookingService bookin
     /// <param name="cancellationToken">Токен отмены</param>
     /// <response code="200">Событие успешно удалено</response>
     /// <response code="404">Событие с указанным ID не найдено</response>
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

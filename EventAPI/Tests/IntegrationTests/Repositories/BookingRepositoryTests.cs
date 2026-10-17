@@ -15,10 +15,12 @@ public class BookingRepositoryTests(DbFixture fixture) : BaseRepositoryTest(fixt
     [Fact]
     public async Task Find_WhenBookingExists_ShouldReturnBooking()
     {
-        var booking = Booking.Create(EventId);
+        var user = CreateUser();
+        var booking = Booking.Create(EventId, user.Id);
 
         await using (var context = Fixture.CreateContext())
         {
+            context.Users.Add(user);
             context.Events.Add(CreateEvent());
             context.Bookings.Add(booking);
 
@@ -59,10 +61,12 @@ public class BookingRepositoryTests(DbFixture fixture) : BaseRepositoryTest(fixt
     [Fact]
     public async Task Add_WhenBookingIsValid_ShouldPersistBooking()
     {
-        var booking = Booking.Create(EventId);
+        var user = CreateUser();
+        var booking = Booking.Create(EventId,user.Id);
 
         await using (var context = Fixture.CreateContext())
         {
+            context.Users.Add(user);
             context.Events.Add(CreateEvent());
             await context.SaveChangesAsync();
         }
@@ -91,12 +95,14 @@ public class BookingRepositoryTests(DbFixture fixture) : BaseRepositoryTest(fixt
     [Fact]
     public async Task Confirm_WhenBookingIsPending_ShouldChangeStatus()
     {
-        var booking = Booking.Create(EventId);
+        var user = CreateUser();
+        var booking = Booking.Create(EventId,user.Id);
         var confirmationTime =
             new DateTime(2024, 06, 11, 14, 20, 00, DateTimeKind.Utc);
 
         await using (var context = Fixture.CreateContext())
         {
+            context.Users.Add(user);
             context.Events.Add(CreateEvent());
             context.Bookings.Add(booking);
 
@@ -134,12 +140,14 @@ public class BookingRepositoryTests(DbFixture fixture) : BaseRepositoryTest(fixt
     [Fact]
     public async Task Reject_WhenBookingIsPending_ShouldChangeStatus()
     {
-        var booking = Booking.Create(EventId);
+        var user = CreateUser();
+        var booking = Booking.Create(EventId,user.Id);
         var rejectionTime =
             new DateTime(2024, 06, 11, 16, 45, 00, DateTimeKind.Utc);
 
         await using (var context = Fixture.CreateContext())
         {
+            context.Users.Add(user);
             context.Events.Add(CreateEvent());
             context.Bookings.Add(booking);
 
@@ -170,4 +178,6 @@ public class BookingRepositoryTests(DbFixture fixture) : BaseRepositoryTest(fixt
         updatedBooking.Status.Should().Be(BookingStatus.Rejected);
         updatedBooking.ProcessedAt.Should().Be(rejectionTime);
     }
+    
+    private static User CreateUser() => User.Create($"UserLogin_{Guid.NewGuid():N}", "hash", UserRole.User);
 }

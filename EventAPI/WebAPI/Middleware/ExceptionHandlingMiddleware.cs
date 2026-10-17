@@ -1,4 +1,6 @@
-﻿using Domain.Exceptions;
+﻿using System.Diagnostics;
+using Application.Exceptions.Exceptions;
+using Domain.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebAPI.Middleware;
@@ -27,10 +29,11 @@ internal class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Excepti
 
 	private Task HandleExceptionAsync(HttpContext context, Exception exception)
 	{
+		var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
 		context.Response.ContentType = "application/json";
 
 		int statusCode;
-		string message;
+		var message = exception.Message;
 		
 		logger.LogError(
 			exception, 
@@ -39,24 +42,33 @@ internal class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Excepti
 		
 		switch (exception)
 		{
+			case AccessDeniedException:
+				statusCode = StatusCodes.Status403Forbidden;
+				break;
+			
 			case EntityNotFoundException:
 				statusCode = StatusCodes.Status404NotFound;
 				message = exception.Message;
 				break;
 			
+			case UserAlreadyExistsException:
 			case NoAvailableSeatsException:
+			case BookingLimitReachingException:
 				statusCode = StatusCodes.Status409Conflict;
-				message = exception.Message;
 				break;
 
 			case ArgumentException:
+			case BookingMustBeInPendingStatusException:
+			case PastEventBookingException:
+			case PastEventCancellationException:
 				statusCode = StatusCodes.Status400BadRequest;
-				message = exception.Message;
 				break;
 
 			default:
 				statusCode = StatusCodes.Status500InternalServerError;
 				message = "Internal server error";
+				logger.LogError(exception, "Ошибка при обработке запроса {Method} {Path}. TraceId: {TraceId}",
+					context.Request.Method, context.Request.Path, traceId);
 				break;
 		}
 

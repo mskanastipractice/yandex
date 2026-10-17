@@ -9,5 +9,13 @@
       <jdbc-url>jdbc:postgresql://localhost:5432/eventapi?password=postgres&amp;user=postgres</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="auth@localhost" uuid="abe5a07e-e6a7-4aa4-a651-36104085dd02">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <configured-by-url>true</configured-by-url>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://localhost:5432/auth?password=auth_serviceuser&amp;user=auth_serviceuser</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

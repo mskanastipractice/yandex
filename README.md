@@ -26,41 +26,41 @@ Common — Общие контракты для взаимодействия.
 
 ## Запуск
 
-1 Запустить контейнеры необходимые для проекта 
+1 Из каталога `EventAPI` скопировать `.env.example` в `.env` и заменить `JWT_SECRET_KEY` на длинный случайный секрет. Затем запустить всю систему: 
 ```bash
 docker compose up -d
 ```
 
-2 Запустить микросервисы
+2 Альтернатива: для локального запуска без контейнеризации API (из каталога `EventAPI`, после запуска инфраструктуры)
 ```bash
-dotnet run --project src/Auth.Service/Auth.Api/Auth.Api.csproj
-dotnet run --project src/Events.Service/Events.Api/Events.Api.csproj
-dotnet run --project src/Bookings.Service/Bookings.Api/Bookings.Api.csproj
+dotnet run --project AuthService/Auth.Api/Auth.Api.csproj
+dotnet run --project EventService/Events.Api/Events.Api.csproj
+dotnet run --project BookingService/Booking.Api/Booking.Api.csproj
 ```
 
 | Компонент / Сервис | Порт на хосте   | Назначение / БД                       |
 |--------------------|-----------------|---------------------------------------|
-| **Auth.Api**       | `5125` / `7090` | Имя БД: `users`                       |
-| **Events.Api**     | `5130` / `7262` | Имя БД: `events`                      |
-| **Bookings.Api**   | `5063` / `7275` | Имя БД: `bookings`                    |
+| **Auth.Api**       | `5255` / `7090` | Имя БД: `auth`                       |
+| **Events.Api**     | `5138` / `7262` | Имя БД: `events`                      |
+| **Bookings.Api**   | `5047` / `7275` | Имя БД: `bookings`                    |
 
 
 
 ## Эндпоинты
 
-#### Auth (`:5125`)
+#### Auth (`:5255`)
 * `POST /auth/register` — Регистрация нового пользователя (Коды: 204, 400, 409)
 * `POST /auth/login` — Аутентификация и выдача JWT (Коды: 200, 400, 401)
 * `GET /users/{id}` — Получить профиль пользователя (Коды: 200, 401, 403, 404)
 
-#### Events (`:5130`)
+#### Events (`:5138`)
 * `GET /events` — Получить список событий с пагинацией и фильтрацией (Коды: 200, 401)
 * `GET /events/{id}` — Получить событие по ID (Коды: 200, 401, 404)
 * `POST /events` — Создать новое событие `[Admin]` (Коды: 201, 400, 401, 403)
 * `PUT /events/{id}` — Редактировать событие `[Admin]` (Коды: 204, 400, 401, 403, 404)
 * `DELETE /events/{id}` — Удалить событие `[Admin]` (Коды: 200, 401, 403, 404)
 
-#### Bookings (`:5063`)
+#### Bookings (`:5047`)
 * `POST /bookings/{eventId}` — Создать заявку на бронирование места (Коды: 202, 401, 404, 409)
 * `GET /bookings/{id}` — Получить текущий статус брони (Коды: 200, 401, 403, 404)
 * `DELETE /bookings/{id}` — Отменить бронирование (Коды: 200, 401, 403, 404)
@@ -101,7 +101,7 @@ dotnet run --project src/Bookings.Service/Bookings.Api/Bookings.Api.csproj
 ### Сценарии
 Овербукинг:
 - Создаёте событие с TotalSeats = 10 через POST /events.
-- Успешно бронируете 10 мест через POST /events/{id}/book (например, 10 разных пользователей).
+- Успешно бронируете 10 мест через POST /bookings/{eventId} (например, 10 разных пользователей).
 - Пытаетесь забронировать 11-е место.
 - Система возвращает ответ 409 Conflict с сообщением о том, что свободных мест нет.
 
@@ -118,7 +118,7 @@ dotnet run --project src/Bookings.Service/Bookings.Api/Bookings.Api.csproj
 
 #### Инструкция по получению и использованию JWT-токена 
 0. Откройте SWAGGER 
-1. Выполните запрос к эндпоинту входа (`POST /api/auth/login`), передав валидные логин и пароль в JSON-теле запроса.
+1. Выполните запрос к эндпоинту входа (`POST /auth/login`), передав валидные логин и пароль в JSON-теле запроса.
 2. Из полученного JSON-ответа скопируйте текстовое значение строки токена.
 3. В правом верхнем углу интерфейса Swagger нажмите кнопку Authorize.
 4. В открывшемся поле ввода напишите слово Bearer, затем пробел и вставьте скопированный токен.
@@ -136,11 +136,28 @@ dotnet test
 ## Работа с миграцией данных
 ```bash
 dotnet ef migrations add <Имя> --project AuthService/Auth.Infrastructure --startup-project AuthService/Auth.Api
-dotnet ef migrations add <Имя> --project EventsService/Events.Infrastructure --startup-project EventsService/Events.Api
-dotnet ef migrations add <Имя> --project BookingsService/Bookings.Infrastructure --startup-project BookingsService/Bookings.Api
+dotnet ef migrations add <Имя> --project EventService/Events.Infrastructure --startup-project EventService/Events.Api
+dotnet ef migrations add <Имя> --project BookingService/Bookings.Infrastructure --startup-project BookingService/Bookings.Api
 
-dotnet ef migrations add <MigrationName> --project Infrastructure --startup-project WebAPI
+# Применение существующих миграций
+dotnet ef database update --project AuthService/Auth.Infrastructure --startup-project AuthService/Auth.Api
+dotnet ef database update --project EventService/Events.Infrastructure --startup-project EventService/Events.Api
+dotnet ef database update --project BookingService/Booking.Infrastructure --startup-project BookingService/Booking.Api
 
-Применение миграций к базе данных
-dotnet ef database update --project Infrastructure --startup-project WebAPI
 
+## Запуск всей системы через Docker Compose
+
+Из каталога `EventAPI`:
+
+```bash
+cp .env.example .env
+# Задайте собственный JWT_SECRET_KEY в .env (не менее 32 байт)
+docker compose up --build -d
+```
+
+Auth: http://localhost:5255/swagger; Events: http://localhost:5138/swagger; Bookings: http://localhost:5047/swagger; Kafka UI: http://localhost:8082.
+В контейнерах установлен `ASPNETCORE_ENVIRONMENT=Development`, поэтому Swagger доступен. Настройки Kafka передаются как `Kafka__BootstrapServers=kafka:29092` и `Kafka__ConsumerGroup`; JWT-настройки и строки подключения передаются через переменные окружения. При первом запуске PostgreSQL создаёт базы `auth`, `events`, `bookings` с помощью `init.sql`; миграции EF Core применяются при запуске API. Для повторного выполнения init.sql требуется новый том БД.
+
+## Поток BookingConfirmed
+
+После обработки заявки фоновый обработчик Bookings переводит бронь в `Confirmed` и публикует событие `BookingConfirmed` в Kafka-топик `booking-confirmed` с ключом `EventId`. Сервис Events получает сообщение в consumer group `events-service-group`, находит событие и уменьшает `AvailableSeats`. При отсутствии мест обработчик не должен допускать отрицательного остатка. Публикация и обработка асинхронны: обновление доступных мест может происходить с задержкой.

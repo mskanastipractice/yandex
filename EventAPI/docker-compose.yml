@@ -75,6 +75,56 @@ services:
       KAFKA_CLUSTERS_0_NAME: local-cluster
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
 
+  auth:
+    build:
+      context: .
+      dockerfile: AuthService/Auth.Api/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5125:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=auth;Username=auth_serviceuser;Password=auth_serviceuser"
+
+  events:
+    build:
+      context: .
+      dockerfile: EventService/Events.Api/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5130:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=events;Username=events_serviceuser;Password=events_serviceuser
+      Kafka__BootstrapServers: "kafka:29092"
+      Kafka__ConsumerGroup: "events-service-group"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  bookings:
+    build:
+      context: .
+      dockerfile: BookingService/Booking.Api/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5063:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=bookings;Username=bookings_serviceuser;Password=bookings_serviceuser
+      Kafka__BootstrapServers: "kafka:29092"
+      Kafka__ConsumerGroup: "bookings-service-group"
+      
 volumes:
   eventapi_pgdata:
 

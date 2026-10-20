@@ -32,9 +32,13 @@ public class EventsController(ISender sender) : ControllerBase
         return Ok(result.ToPaginatedResponse());
     }
     
-    [AllowAnonymous]
+    /// <summary>
+    /// Получить топ 10 событий
+    /// </summary>
+    /// <returns>Список событий</returns>
+    /// <response code="200">Успешно возвращен список событий</response>
     [HttpGet("top")]
-    [ProducesResponseType(typeof(IReadOnlyList<EventResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedResult<EventResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<EventResponse>>> GetTop(CancellationToken cancellationToken)
     {
         var events = await sender.Send(new GetTopEventsQuery(), cancellationToken);

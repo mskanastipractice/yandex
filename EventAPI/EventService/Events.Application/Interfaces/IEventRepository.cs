@@ -8,6 +8,8 @@ public interface IEventRepository
 
     Task<Event?> FindAsync(Guid eventId, CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<Event>> GetTopAsync(CancellationToken cancellationToken);
+
     void Add(Event @event);
 
     void Delete(Event @event);

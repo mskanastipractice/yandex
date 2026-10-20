@@ -1,11 +1,13 @@
 ﻿using Common.Contracts;
 using Events.Application.Interfaces;
+using Events.Application.Settings;
 using Events.Infrastructure.BackgroundServices;
 using Events.Infrastructure.DataAccess;
 using Events.Infrastructure.HealthChecker;
 using Events.Infrastructure.Repositories;
 using Events.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,6 +21,16 @@ public static class DependencyInjection
                                ?? throw new InvalidOperationException("Не найдена строка подключения к БД.");
 
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+
+        var redisConnection = configuration["Redis:ConnectionString"] ?? "localhost:6379";
+        var redisOptions = ConfigurationOptions.Parse(redisConnection);
+        redisOptions.AbortOnConnectFail = false;
+        services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOptions));
+        services.AddSingleton<IEventCache, RedisEventCache>();
+        var cacheSettings = configuration.GetSection("Redis").Get<EventCacheSettings>() ?? new EventCacheSettings();
+        if (cacheSettings.EventTtlSeconds <= 0 || cacheSettings.TopTtlSeconds <= 0)
+            throw new InvalidOperationException("Не указано TTL для Redis.");
+        services.AddSingleton(cacheSettings);
 
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IDatabaseHealthChecker, DatabaseHealthChecker>();

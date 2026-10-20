@@ -1,5 +1,4 @@
-﻿using Events.Application;
-using Events.Application.Interfaces;
+﻿using Events.Application.Interfaces;
 using Events.Domain;
 using Events.Infrastructure.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +40,15 @@ public class EventRepository(AppDbContext context) : IEventRepository
     public async Task<Event?> FindAsync(Guid eventId, CancellationToken cancellationToken)
     {
         return await context.Events.FindAsync([eventId], cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Event>> GetTopAsync(CancellationToken cancellationToken)
+    {
+        return await context.Events.AsNoTracking()
+            .OrderByDescending(e => (double)(e.TotalSeats - e.AvailableSeats) / e.TotalSeats)
+            .ThenBy(e => e.Id)
+            .Take(10)
+            .ToArrayAsync(cancellationToken);
     }
 
     public void Add(Event @event)

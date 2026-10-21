@@ -1,5 +1,6 @@
 ﻿using Events.Application.Interfaces;
 using Events.Application.QueryHandlers;
+using Events.Application.Settings;
 using Events.Application.UseCases;
 using Events.Domain;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +23,7 @@ public abstract class BaseUnitTest : IDisposable
 
     protected readonly Mock<ICurrentUserContext> UserContextMock = new();
     protected readonly Mock<IEventRepository> EventRepositoryMock = new();
+    protected readonly Mock<IEventCache> EventCacheMock = new();
 
     protected readonly IServiceProvider ServiceProvider;
 
@@ -64,6 +66,9 @@ public abstract class BaseUnitTest : IDisposable
 
         services.AddSingleton(UserContextMock.Object);
         services.AddSingleton(EventRepositoryMock.Object);
+        services.AddSingleton(EventCacheMock.Object);
+        services.AddSingleton(new EventCacheSettings());
+        services.AddScoped<GetTopEventsQueryHandler>();
     }
 
     public void Dispose()

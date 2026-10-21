@@ -3,6 +3,7 @@ using Events.Api.Contracts.Events;
 using Events.Api.Mappings;
 using Events.Application.Contracts.Commands;
 using Events.Application.Contracts.Queries;
+using Events.Application.QueryHandlers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +32,19 @@ public class EventsController(ISender sender) : ControllerBase
         return Ok(result.ToPaginatedResponse());
     }
     
+    /// <summary>
+    /// Получить топ 10 событий
+    /// </summary>
+    /// <returns>Список событий</returns>
+    /// <response code="200">Успешно возвращен список событий</response>
+    [HttpGet("top")]
+    [ProducesResponseType(typeof(PaginatedResult<EventResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<EventResponse>>> GetTop(CancellationToken cancellationToken)
+    {
+        var events = await sender.Send(new GetTopEventsQuery(), cancellationToken);
+        return Ok(events.Select(x => x.ToResponse()).ToArray());
+    }
+
     /// <summary>
     /// Получить событие по идентификатору
     /// </summary>

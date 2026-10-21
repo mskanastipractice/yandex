@@ -89,6 +89,15 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: "Host=postgres;Port=5432;Database=auth;Username=auth_serviceuser;Password=auth_serviceuser"
 
+  redis:
+    image: redis:7.2-alpine
+    container_name: eventapi-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      
   events:
     build:
       context: .
@@ -101,10 +110,13 @@ services:
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=events;Username=events_serviceuser;Password=events_serviceuser
       Kafka__BootstrapServers: "kafka:29092"
       Kafka__ConsumerGroup: "events-service-group"
+      Redis__ConnectionString: "redis:6379"
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   bookings:

@@ -67,6 +67,8 @@ public sealed class BookingConfirmedConsumer : BackgroundService
                 }
 
                 await repository.SaveChangesAsync(stoppingToken);
+                var cache = scope.ServiceProvider.GetRequiredService<IEventCache>();
+                await cache.RemoveAsync($"event:{bookingConfirmed.EventId}", stoppingToken);
 
                 _logger.LogInformation(
                     "Подтверждённая бронь {BookingId} обработана для события {EventId}, мест: {SeatsCount}.",

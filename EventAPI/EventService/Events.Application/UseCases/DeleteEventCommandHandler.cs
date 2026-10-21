@@ -5,7 +5,7 @@ using MediatR;
 
 namespace Events.Application.UseCases;
 
-public class DeleteEventCommandHandler(IEventRepository repository) : IRequestHandler<DeleteEventCommand>
+public class DeleteEventCommandHandler(IEventRepository repository, IEventCache cache) : IRequestHandler<DeleteEventCommand>
 {
     public async Task Handle(DeleteEventCommand command, CancellationToken cancellationToken)
     {
@@ -19,5 +19,6 @@ public class DeleteEventCommandHandler(IEventRepository repository) : IRequestHa
         repository.Delete(eventToDelete);
 
         await repository.SaveChangesAsync(cancellationToken);
+        await cache.RemoveAsync($"event:{command.EventId}", cancellationToken);
     }
 }

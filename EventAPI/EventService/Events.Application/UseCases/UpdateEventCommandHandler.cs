@@ -6,7 +6,7 @@ using MediatR;
 
 namespace Events.Application.UseCases;
 
-public class UpdateEventCommandHandler(IEventRepository repository) : IRequestHandler<UpdateEventCommand>
+public class UpdateEventCommandHandler(IEventRepository repository, IEventCache cache) : IRequestHandler<UpdateEventCommand>
 {
     public async Task Handle(UpdateEventCommand command, CancellationToken cancellationToken)
     {
@@ -21,5 +21,6 @@ public class UpdateEventCommandHandler(IEventRepository repository) : IRequestHa
             EventPeriod.Create(command.StartAt, command.EndAt));
 
         await repository.SaveChangesAsync(cancellationToken);
+        await cache.RemoveAsync($"event:{command.Id}", cancellationToken);
     }
 }

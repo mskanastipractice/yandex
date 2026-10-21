@@ -61,15 +61,15 @@ services:
       interval: 10s
       timeout: 10s
       retries: 15
-      
+  
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: eventapi-kafka-ui
     ports:
-      - "8082:8080" 
+      - "8082:8080"
     depends_on:
       kafka:
-        condition: service_healthy 
+        condition: service_healthy
     environment:
       DYNAMIC_CONFIG_ENABLED: "true"
       KAFKA_CLUSTERS_0_NAME: local-cluster
@@ -86,6 +86,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      Otlp__Endpoint: "http://jaeger:4317"
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: "Host=postgres;Port=5432;Database=auth;Username=auth_serviceuser;Password=auth_serviceuser"
 
@@ -97,7 +98,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-      
+  
   events:
     build:
       context: .
@@ -106,6 +107,7 @@ services:
     ports:
       - "5130:8080"
     environment:
+      Otlp__Endpoint: "http://jaeger:4317"
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=events;Username=events_serviceuser;Password=events_serviceuser
       Kafka__BootstrapServers: "kafka:29092"
@@ -132,11 +134,49 @@ services:
       kafka:
         condition: service_healthy
     environment:
+      Otlp__Endpoint: "http://jaeger:4317"
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=bookings;Username=bookings_serviceuser;Password=bookings_serviceuser
       Kafka__BootstrapServers: "kafka:29092"
       Kafka__ConsumerGroup: "bookings-service-group"
-      
+  
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: eventapi-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - events
+      - bookings
+      - auth
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    container_name: eventapi-jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: eventapi-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
 volumes:
   eventapi_pgdata:
+  grafana-data:
 

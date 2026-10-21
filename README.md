@@ -159,14 +159,18 @@ Auth: http://localhost:5255/swagger; Events: http://localhost:5138/swagger; Book
 В контейнерах установлен `ASPNETCORE_ENVIRONMENT=Development`, поэтому Swagger доступен. Настройки Kafka передаются как `Kafka__BootstrapServers=kafka:29092` и `Kafka__ConsumerGroup`; JWT-настройки и строки подключения передаются через переменные окружения. При первом запуске PostgreSQL создаёт базы `auth`, `events`, `bookings` с помощью `init.sql`; миграции EF Core применяются при запуске API. Для повторного выполнения init.sql требуется новый том БД.
 
 ## Поток BookingConfirmed
-
 После обработки заявки фоновый обработчик Bookings переводит бронь в `Confirmed` и публикует событие `BookingConfirmed` в Kafka-топик `booking-confirmed` с ключом `EventId`. Сервис Events получает сообщение в consumer group `events-service-group`, находит событие и уменьшает `AvailableSeats`. При отсутствии мест обработчик не должен допускать отрицательного остатка. Публикация и обработка асинхронны: обновление доступных мест может происходить с задержкой.
+
 ## Кеширование событий (Redis)
 
 Сервис Events использует Redis через `IEventCache` (Application), реализация `RedisEventCache` находится в Infrastructure. Соединение `IConnectionMultiplexer` зарегистрировано как singleton. Настройки `Redis:ConnectionString`, `Redis:EventTtlSeconds` (300 секунд) и `Redis:TopTtlSeconds` (60 секунд) задаются в `Events.Api/appsettings.json`; в Docker адрес переопределяется переменной `Redis__ConnectionString=redis:6379`.
-
 Используется Cache-Aside: `GET /events/{id}` сначала читает `event:{id}`, а `GET /events/top` (без авторизации) — `events:top10`. При промахе данные запрашиваются из PostgreSQL и сохраняются с соответствующим TTL. Топ содержит не более 10 событий, отсортированных по доле проданных мест `(TotalSeats - AvailableSeats) / TotalSeats` по убыванию.
-
 Для отдельного события выбрана **инвалидация при записи**: после успешного сохранения создания, обновления, удаления события, а также изменения числа свободных мест обработчиком Kafka удаляется `event:{id}`. Следующее чтение заново загрузит актуальные данные. Удаление ключа после записи не позволяет преждевременно публиковать несохранённые данные. TTL 5 минут ограничивает срок жизни записей и последствия редких гонок или неудачной инвалидации. Рейтинг меняется при бронированиях, но небольшая задержка допустима: он обновляется только по TTL (1 минута), без инвалидации при каждой записи.
-
 Ошибки Redis логируются и не прерывают запросы: при недоступном кеше чтение идёт в БД, а запись/удаление кеша пропускается.
+
+## Мониторинг
+
+В Auth.Api (`users-service`), Events.Api (`events-service`) и Bookings.Api (`bookings-service`) подключены OpenTelemetry SDK (HTTP/HttpClient, EF Core SQL и runtime), Prometheus-метрики и OTLP-трейсы в Jaeger. Serilog пишет JSON-логи в stdout.
+Из каталога `EventAPI` запустите `docker compose up -d --build`. Доступны интерфейсы: Prometheus — http://localhost:9090 (Targets: http://localhost:9090/targets), Jaeger — http://localhost:16686, Grafana — http://localhost:3000 (admin/admin). Источник данных Prometheus и дашборд **EventAPI — Events service** создаются автоматически из `grafana/provisioning` и `grafana/dashboards/events-service.json`.
+Эндпоинты метрик: Events — http://localhost:5130/metrics, Bookings — http://localhost:5063/metrics, Auth — http://localhost:5125/metrics. В Docker Prometheus опрашивает `events:8080`, `bookings:8080`, `auth:8080` каждые 15 секунд. OTLP адрес задаётся через `Otlp:Endpoint` (в контейнерах `http://jaeger:4317`, при локальном запуске `http://localhost:4317`). Имена сервисов заданы в `Otlp:ServiceName`.
+Для появления HTTP- и SQL-спанов отправьте запросы к API, которые обращаются к БД, затем выберите соответствующий сервис в Jaeger. В Grafana панели показывают p50/p95/p99 задержки, RPS, процент HTTP 5xx и число активных запросов. До поступления запросов временные ряды могут быть пустыми.
